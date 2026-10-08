@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 const control =
-  "w-full rounded-2xl border border-border bg-card px-4 text-[15px] text-fg placeholder:text-subtle transition focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-soft disabled:opacity-60";
+  "w-full rounded-2xl border border-border bg-card px-4 text-base text-fg sm:text-[15px] placeholder:text-subtle transition-[border-color,box-shadow] focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent-soft disabled:opacity-60";
 
 export function Input({ className, ...props }: React.ComponentProps<"input">) {
   return <input className={cn(control, "h-12", className)} {...props} />;

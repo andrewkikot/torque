@@ -1,5 +1,6 @@
-import { getLocale, getTranslations } from "next-intl/server";
+import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
 import { loadCar } from "@/lib/page-data";
+import { requireAcceptedUser } from "@/lib/session";
 import { listHistory, historyStats } from "@/lib/services/work";
 import { formatDate, formatMoney, formatNumber } from "@/lib/format";
 import { PrintButton } from "./print-button";
@@ -9,10 +10,12 @@ export const metadata = { title: "Service history" };
 /** Print-friendly service history (browser "Save as PDF") — handy when selling the car. */
 export default async function PrintPage({ params }: PageProps<"/print/[id]">) {
   const { id } = await params;
+  await requireAcceptedUser();
   const { user, car, settings } = await loadCar(id);
   const [items, stats] = await Promise.all([listHistory(user.id, car.id), historyStats(user.id, car.id)]);
   const t = await getTranslations();
   const locale = await getLocale();
+  const tz = await getTimeZone();
   return (
     <div className="mx-auto max-w-3xl bg-white px-8 py-10 text-stone-900">
       <div className="no-print mb-6 flex justify-end">
@@ -50,7 +53,7 @@ export default async function PrintPage({ params }: PageProps<"/print/[id]">) {
         <tbody>
           {items.map((i) => (
             <tr key={i.id} className="break-inside-avoid border-b border-stone-200 align-top">
-              <td className="whitespace-nowrap py-2 pr-3">{formatDate(i.performedAt, locale)}</td>
+              <td className="whitespace-nowrap py-2 pr-3">{formatDate(i.performedAt, locale, undefined, tz)}</td>
               <td className="whitespace-nowrap py-2 pr-3 tabular">{i.odometer != null ? formatNumber(i.odometer, locale) : "—"}</td>
               <td className="py-2 pr-3">
                 <div className="font-semibold">{i.name}</div>
@@ -73,7 +76,7 @@ export default async function PrintPage({ params }: PageProps<"/print/[id]">) {
           </tr>
         </tfoot>
       </table>
-      <footer className="mt-10 text-center text-xs text-stone-400">{t("history.printGenerated", { date: formatDate(new Date(), locale) })}</footer>
+      <footer className="mt-10 text-center text-xs text-stone-400">{t("history.printGenerated", { date: formatDate(new Date(), locale, undefined, tz) })}</footer>
     </div>
   );
 }

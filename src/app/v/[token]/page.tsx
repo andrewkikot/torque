@@ -26,7 +26,7 @@ export default async function ShopPage({ params }: PageProps<"/v/[token]">) {
   return (
     <div style={accentStyle(car.accentColor)} className="min-h-dvh">
       {!closed && <AutoRefresh intervalMs={30_000} />}
-      <header className="border-b border-border bg-bg-elevated">
+      <header className="border-b border-border bg-bg-elevated pt-safe">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
           <Logo className="scale-90" />
           <LocaleSwitch />
@@ -34,10 +34,10 @@ export default async function ShopPage({ params }: PageProps<"/v/[token]">) {
       </header>
       <main className="mx-auto max-w-4xl px-4 py-6">
         <div className="mb-6 flex items-center gap-4">
-          <CarPhoto car={car} className="size-16 shrink-0" rounded="rounded-2xl" />
+          <CarPhoto car={car} thumb className="size-16 shrink-0" rounded="rounded-2xl" />
           <div className="min-w-0">
             <div className="text-xs font-bold uppercase tracking-wider text-muted">{t("shop.title")}</div>
-            <h1 className="truncate font-display text-2xl font-bold">{visit.title}</h1>
+            <h1 className="line-clamp-2 text-xl font-extrabold leading-tight sm:font-display sm:text-2xl">{visit.title}</h1>
             <p className="text-sm text-muted">
               {[car.year, car.make, car.model].filter(Boolean).join(" ")}
               {car.plate && <span className="ml-2 rounded-md bg-soft px-1.5 py-0.5 font-mono text-xs font-bold text-fg">{car.plate}</span>}
@@ -59,7 +59,18 @@ export default async function ShopPage({ params }: PageProps<"/v/[token]">) {
           <h2 className="mb-4 font-display text-lg font-semibold">{t("visit.timeline")}</h2>
           <Timeline events={visit.events} items={visit.workItems} currency={visit.currency} visitId={visit.id} canDecide={false} />
         </section>
-        <footer className="mt-12 text-center text-xs text-subtle">{t("shop.poweredBy")}</footer>
+        <footer className="mt-12 flex flex-col items-center gap-1 text-center text-xs text-subtle">
+          <span>
+            {t.rich("terms.shopNote", {
+              terms: (chunks) => (
+                <a href="/terms" className="underline underline-offset-2">
+                  {chunks}
+                </a>
+              ),
+            })}
+          </span>
+          <span>{t("shop.poweredBy")}</span>
+        </footer>
       </main>
     </div>
   );

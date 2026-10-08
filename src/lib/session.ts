@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db, schema } from "@/db";
+import { TERMS_VERSION } from "@/lib/terms";
 
 export type CurrentUser = { id: string; email: string; name: string };
 
@@ -18,6 +19,14 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 export async function requireUser(): Promise<CurrentUser> {
   const user = await getCurrentUser();
   if (!user) redirect("/sign-in");
+  return user;
+}
+
+/** Signed in AND accepted the current Terms; otherwise sent to sign-in / acceptance. */
+export async function requireAcceptedUser(): Promise<CurrentUser> {
+  const user = await requireUser();
+  const settings = await getSettings(user.id);
+  if (settings.termsVersion !== TERMS_VERSION) redirect("/accept-terms");
   return user;
 }
 

@@ -13,12 +13,17 @@ import { buildTools, approvalConfig } from "@/lib/ai/tools";
 import { buildSystemPrompt } from "@/lib/ai/prompt";
 import { saveConversation } from "@/lib/ai/history";
 import { hit } from "@/lib/rate-limit";
+import { TERMS_VERSION } from "@/lib/terms";
 
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user) return Response.json({ error: "unauthorized" }, { status: 401 });
+
+  if ((await getSettings(user.id)).termsVersion !== TERMS_VERSION) {
+    return Response.json({ error: "Please accept the Terms of Use first." }, { status: 403 });
+  }
 
   if (!(await hit(`chat:${user.id}`, 150, 60 * 60 * 24))) {
     return Response.json({ error: "Daily assistant limit reached. Try again tomorrow." }, { status: 429 });

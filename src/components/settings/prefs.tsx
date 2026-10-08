@@ -36,6 +36,7 @@ export function PreferencesCard({
   telegramUsername: string | null;
 }) {
   const t = useTranslations("settings");
+  const tTerms = useTranslations("terms");
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [prefs, setPrefs] = useState(initial);
@@ -130,7 +131,12 @@ export function PreferencesCard({
             {email ? t("signedInAs", { email }) : t("signedInTelegram", { username: telegramUsername ?? "" })}
           </p>
         </div>
-        <SignOut />
+        <div className="flex items-center gap-2">
+          <a href="/terms" target="_blank" className="text-sm font-semibold text-muted underline underline-offset-2">
+            {tTerms("title")}
+          </a>
+          <SignOut />
+        </div>
       </Card>
     </>
   );

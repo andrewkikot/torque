@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { useLocale, useTranslations } from "next-intl";
+import { useLocale, useTimeZone, useTranslations } from "next-intl";
 import { ChevronRight } from "lucide-react";
 import { STATUS_EMOJI } from "@/lib/domain/visit-status";
 import { formatDate, formatMoney } from "@/lib/format";
@@ -16,6 +16,7 @@ export function VisitRow({
 }) {
   const t = useTranslations();
   const locale = useLocale();
+  const tz = useTimeZone();
   const active = visit.status !== "completed" && visit.status !== "cancelled";
   const name = visit.car.nickname || `${visit.car.make} ${visit.car.model}`;
   return (
@@ -35,7 +36,7 @@ export function VisitRow({
           {visit.shopName && <>{visit.shopName} · </>}
           <span className={cn(active && "font-semibold text-accent")}>{t(`status.${visit.status}`)}</span>
           {" · "}
-          {formatDate(visit.completedAt ?? visit.plannedAt ?? visit.createdAt, locale)}
+          {formatDate(visit.completedAt ?? visit.plannedAt ?? visit.createdAt, locale, undefined, tz)}
         </span>
       </span>
       <span className="tabular shrink-0 font-display font-semibold">{formatMoney(visitTotalClient(visit.workItems), visit.currency, locale)}</span>

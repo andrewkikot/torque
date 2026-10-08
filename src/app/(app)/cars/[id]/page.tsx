@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { and, eq } from "drizzle-orm";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
 import { Sparkles, Wrench, ChevronRight } from "lucide-react";
 import { db, schema } from "@/db";
 import { loadCar } from "@/lib/page-data";
@@ -15,6 +15,15 @@ import { DueText, dueTone } from "@/components/car/due-text";
 import { CATEGORY_EMOJI } from "@/components/work/categories";
 import { VisitProgress } from "@/components/visit/visit-progress";
 import { formatDate, formatMoney } from "@/lib/format";
+
+function QuickLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
+  return (
+    <Link href={href} className="flex flex-col items-center justify-center gap-1.5 rounded-3xl border border-border bg-card px-2 py-3 text-center text-xs font-semibold shadow-card active:scale-[0.97]">
+      <span className="grid size-10 place-items-center rounded-2xl bg-accent-soft text-accent">{icon}</span>
+      <span className="line-clamp-2 leading-tight">{label}</span>
+    </Link>
+  );
+}
 
 export default async function CarOverview({ params }: PageProps<"/cars/[id]">) {
   const { id } = await params;
@@ -31,24 +40,30 @@ export default async function CarOverview({ params }: PageProps<"/cars/[id]">) {
   ]);
   const t = await getTranslations();
   const locale = await getLocale();
+  const tz = await getTimeZone();
   const upcoming = plans.filter((p) => p.due.status !== "unknown").slice(0, 4);
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
       <div className="flex flex-col gap-6">
+        <div className="grid grid-cols-3 gap-2 lg:hidden">
+          <AddWorkButton carId={car.id} currency={settings.currency} units={settings.units} odometer={car.currentOdometer} plans={planOptions} compact />
+          <QuickLink href={`/visits/new?carId=${car.id}`} icon={<Wrench className="size-5" />} label={t("car.startVisit")} />
+          <QuickLink href={`/assistant?carId=${car.id}`} icon={<Sparkles className="size-5" />} label={t("assistant.title")} />
+        </div>
         {active.map((v) => (
           <Link key={v.id} href={`/visits/${v.id}`} className="block">
             <Card className="border-accent/40 bg-gradient-to-br from-accent-soft to-card transition hover:-translate-y-0.5">
-              <div className="mb-3 flex items-center justify-between gap-2">
+              <div className="mb-3 flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-xs font-bold uppercase tracking-wider text-accent">{t("garage.activeVisits")}</div>
-                  <div className="truncate font-display text-lg font-semibold">{v.title}</div>
-                  <div className="text-sm text-muted">{v.shopName}</div>
+                  <div className="mt-0.5 line-clamp-2 text-lg font-bold leading-snug">{v.title}</div>
+                  <div className="text-sm text-muted">
+                    {v.shopName && <>{v.shopName} · </>}
+                    <span className="tabular font-semibold text-fg">{formatMoney(visitTotal(v.workItems), v.currency, locale)}</span>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <div className="tabular font-display text-lg font-bold">{formatMoney(visitTotal(v.workItems), v.currency, locale)}</div>
-                  <ChevronRight className="ml-auto size-5 text-muted" />
-                </div>
+                <ChevronRight className="mt-5 size-5 shrink-0 text-muted" />
               </div>
               <VisitProgress status={v.status} compact />
             </Card>
@@ -84,7 +99,7 @@ export default async function CarOverview({ params }: PageProps<"/cars/[id]">) {
             {t("car.recentWork")}
           </SectionTitle>
           {history.length ? (
-            <HistoryList items={history.slice(0, 5)} units={settings.units} carId={car.id} />
+            <HistoryList items={history.slice(0, 5)} units={settings.units} carId={car.id} readOnly />
           ) : (
             <p className="text-sm text-muted">{t("car.noWork")}</p>
           )}
@@ -92,7 +107,7 @@ export default async function CarOverview({ params }: PageProps<"/cars/[id]">) {
       </div>
 
       <aside className="flex flex-col gap-4">
-        <Card className="flex flex-col gap-2">
+        <Card className="hidden flex-col gap-2 lg:flex">
           <AddWorkButton carId={car.id} currency={settings.currency} units={settings.units} odometer={car.currentOdometer} plans={planOptions} />
           <ButtonLink href={`/visits/new?carId=${car.id}`} variant="outline">
             <Wrench /> {t("car.startVisit")}
@@ -135,7 +150,7 @@ export default async function CarOverview({ params }: PageProps<"/cars/[id]">) {
               {car.purchaseDate && (
                 <>
                   <dt className="text-muted">{t("wizard.purchaseDate")}</dt>
-                  <dd>{formatDate(car.purchaseDate, locale)}</dd>
+                  <dd>{formatDate(car.purchaseDate, locale, undefined, tz)}</dd>
                 </>
               )}
             </dl>

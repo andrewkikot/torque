@@ -34,7 +34,7 @@ export function Composer({
   }
 
   return (
-    <div className="rounded-3xl border border-border bg-card p-2 shadow-card focus-within:border-accent">
+    <div className="rounded-3xl border border-border bg-card p-2 shadow-card focus-within:border-accent focus-within:ring-4 focus-within:ring-accent-soft transition-[border-color,box-shadow]">
       {photo && (
         <div className="relative m-2 inline-block">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -54,7 +54,7 @@ export function Composer({
           }}
           placeholder={t("notePlaceholder")}
           rows={1}
-          className="max-h-40 min-h-10 flex-1 resize-none bg-transparent focus-visible:outline-none px-2 py-2 text-[15px] outline-none placeholder:text-subtle field-sizing-content"
+          className="max-h-40 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-base outline-none sm:text-[15px] placeholder:text-subtle field-sizing-content"
         />
         <Button size="icon" onClick={post} loading={busy} disabled={!text.trim() && !photo} aria-label={t("post")}>
           {!busy && <SendHorizonal />}

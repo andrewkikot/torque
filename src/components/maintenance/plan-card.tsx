@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useLocale, useTranslations } from "next-intl";
+import { useLocale, useTimeZone, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { CheckCircle2, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { motion } from "motion/react";
@@ -33,6 +33,7 @@ export type PlanView = {
 export function PlanCard({ plan, carId, units, odometer, children }: { plan: PlanView; carId: string; units: string; odometer: number; children: React.ReactNode }) {
   const t = useTranslations();
   const locale = useLocale();
+  const tz = useTimeZone();
   const router = useRouter();
   const [doneOpen, setDoneOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -108,7 +109,7 @@ export function PlanCard({ plan, carId, units, odometer, children }: { plan: Pla
       </div>
       <div className="mt-3 flex items-center justify-between gap-2 text-xs text-muted">
         <span>
-          {t("maintenance.lastDone")}: {plan.lastDoneAt ? formatDate(plan.lastDoneAt, locale) : "—"}
+          {t("maintenance.lastDone")}: {plan.lastDoneAt ? formatDate(plan.lastDoneAt, locale, undefined, tz) : "—"}
           {plan.lastDoneOdometer != null && ` · ${formatNumber(plan.lastDoneOdometer, locale)} ${units}`}
         </span>
         <Button size="sm" variant={status === "overdue" || status === "soon" ? "primary" : "secondary"} onClick={() => setDoneOpen(true)}>

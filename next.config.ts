@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
   // Photos are compressed client-side and served straight from Vercel Blob,
   // so we skip Vercel Image Optimization (keeps us inside Hobby quotas).
   images: { unoptimized: true },
+  devIndicators: false,
   serverExternalPackages: ["pg"],
   turbopack: {
     rules: {

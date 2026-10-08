@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
 import { ArrowLeft, Clock, Phone, Gauge } from "lucide-react";
 import { requireUser, getSettings } from "@/lib/session";
 import { getVisit } from "@/lib/services/visits";
@@ -26,22 +26,23 @@ export default async function VisitPage({ params }: PageProps<"/visits/[id]">) {
   const settings = await getSettings(user.id);
   const t = await getTranslations();
   const locale = await getLocale();
+  const tz = await getTimeZone();
   const closed = visit.status === "completed" || visit.status === "cancelled";
   const carName = visit.car.nickname || `${visit.car.make} ${visit.car.model}`;
 
   return (
     <div style={accentStyle(visit.car.accentColor)}>
       {!closed && <AutoRefresh />}
-      <header className="mb-6 flex items-center gap-4">
+      <header className="mb-6 flex items-center gap-3 sm:gap-4">
         <Link href="/visits" className="grid size-10 shrink-0 place-items-center rounded-full bg-soft hover:bg-border" aria-label={t("common.back")}>
           <ArrowLeft className="size-5" />
         </Link>
-        <CarPhoto car={visit.car} className="size-14 shrink-0" rounded="rounded-2xl" />
+        <CarPhoto car={visit.car} thumb className="size-14 shrink-0" rounded="rounded-2xl" />
         <div className="min-w-0">
           <Link href={`/cars/${visit.carId}`} className="text-sm font-semibold text-accent">
             {carName}
           </Link>
-          <h1 className="truncate font-display text-2xl font-bold">{visit.title}</h1>
+          <h1 className="line-clamp-2 text-xl font-extrabold leading-tight sm:font-display sm:text-2xl">{visit.title}</h1>
           {visit.shopName && <p className="text-sm text-muted">{visit.shopName}</p>}
         </div>
       </header>
@@ -56,7 +57,7 @@ export default async function VisitPage({ params }: PageProps<"/visits/[id]">) {
       </Card>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <section>
+        <section className="order-2 lg:order-1">
           <h2 className="mb-4 font-display text-lg font-semibold">{t("visit.timeline")}</h2>
           {!closed && (
             <div className="mb-6">
@@ -65,7 +66,7 @@ export default async function VisitPage({ params }: PageProps<"/visits/[id]">) {
           )}
           <Timeline events={visit.events} items={visit.workItems} currency={visit.currency} visitId={visit.id} canDecide />
         </section>
-        <aside className="flex flex-col gap-4">
+        <aside className="order-1 flex flex-col gap-4 lg:order-2">
           <OwnerWorkPanel visitId={visit.id} items={visit.workItems} currency={visit.currency} units={settings.units} closed={closed} />
           {!closed && (
             <SharePanel
@@ -80,12 +81,12 @@ export default async function VisitPage({ params }: PageProps<"/visits/[id]">) {
             <h3 className="font-display font-semibold">{t("visit.details")}</h3>
             {visit.eta && !closed && (
               <div className="flex items-center gap-2">
-                <Clock className="size-4 text-muted" /> {t("visit.eta")}: <b>{formatDateTime(visit.eta, locale)}</b>
+                <Clock className="size-4 text-muted" /> {t("visit.eta")}: <b>{formatDateTime(visit.eta, locale, tz)}</b>
               </div>
             )}
             {visit.plannedAt && (
               <div className="flex items-center gap-2">
-                <Clock className="size-4 text-muted" /> {t("visit.plannedAt")}: {formatDateTime(visit.plannedAt, locale)}
+                <Clock className="size-4 text-muted" /> {t("visit.plannedAt")}: {formatDateTime(visit.plannedAt, locale, tz)}
               </div>
             )}
             {visit.odometer != null && (

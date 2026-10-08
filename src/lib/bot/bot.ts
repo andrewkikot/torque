@@ -17,6 +17,7 @@ import { chat, resolvePending, type BotAiResult, type PendingAction } from "./ai
 import { getPendingLogin, userForTelegram, decideLogin } from "@/lib/services/telegram-login";
 import type { UserSettings } from "@/db/schema";
 import { appUrl } from "@/lib/app-url";
+import { TERMS_VERSION } from "@/lib/terms";
 
 
 type Linked = { settings: UserSettings; t: T };
@@ -35,7 +36,14 @@ function guestT(ctx: Context) {
 
 async function requireLinked(ctx: Context): Promise<Linked | null> {
   const u = await linkedUser(ctx);
-  if (!u) await ctx.reply(guestT(ctx)("bot.notLinked"));
+  if (!u) {
+    await ctx.reply(guestT(ctx)("bot.notLinked"));
+    return null;
+  }
+  if (u.settings.termsVersion !== TERMS_VERSION) {
+    await ctx.reply(`${u.t("terms.botBlocked")}\n${appUrl()}/accept-terms`);
+    return null;
+  }
   return u;
 }
 
@@ -252,8 +260,8 @@ export function createBot() {
   });
 
   bot.callbackQuery(/^(km|kf):([\w-]+):(\d+)$/, async (ctx) => {
-    const u = await linkedUser(ctx);
     await ctx.answerCallbackQuery();
+    const u = await requireLinked(ctx);
     if (!u) return;
     const [, kind, carId, value] = ctx.match;
     await ctx.editMessageReplyMarkup().catch(() => {});
@@ -261,7 +269,7 @@ export function createBot() {
   });
 
   bot.callbackQuery(/^ap:([\w-]+):([01])$/, async (ctx) => {
-    const u = await linkedUser(ctx);
+    const u = await requireLinked(ctx);
     if (!u) return ctx.answerCallbackQuery();
     const [, eventId, decision] = ctx.match;
     const r = await decideApproval(u.settings.userId, eventId, decision === "1", "bot");
@@ -282,7 +290,7 @@ export function createBot() {
   });
 
   bot.callbackQuery(/^ai:([01])$/, async (ctx) => {
-    const u = await linkedUser(ctx);
+    const u = await requireLinked(ctx);
     if (!u) return ctx.answerCallbackQuery();
     const approved = ctx.match[1] === "1";
     await ctx.answerCallbackQuery({ text: approved ? u.t("bot.done") : u.t("bot.skipped") });

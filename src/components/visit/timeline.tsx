@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useLocale, useTranslations } from "next-intl";
+import { useLocale, useTimeZone, useTranslations } from "next-intl";
 import { motion } from "motion/react";
+import { User, Wrench, Send, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { STATUS_EMOJI, type VisitStatusValue } from "@/lib/domain/visit-status";
 import { formatDateTime, formatMoney } from "@/lib/format";
@@ -12,6 +13,8 @@ import { Badge } from "@/components/ui/card";
 import { decideApprovalAction } from "@/app/actions/visits";
 import { cn } from "@/lib/utils";
 import type { TimelineEvent, VisitWork } from "./types";
+
+const AUTHOR_ICON = { owner: User, shop: Wrench, bot: Send, ai: Sparkles } as const;
 
 const AUTHOR_STYLE: Record<string, string> = {
   owner: "bg-accent text-accent-fg",
@@ -35,6 +38,7 @@ export function Timeline({
 }) {
   const t = useTranslations();
   const locale = useLocale();
+  const tz = useTimeZone();
   const sorted = [...events].reverse();
 
   return (
@@ -48,12 +52,16 @@ export function Timeline({
           className="flex gap-3"
         >
           <span className={cn("mt-0.5 grid size-8 shrink-0 place-items-center rounded-full text-[11px] font-bold", AUTHOR_STYLE[e.author])}>
-            {e.kind === "status" && e.status ? STATUS_EMOJI[e.status as VisitStatusValue] : t(`visit.by.${e.author}`).slice(0, 2)}
+            {e.kind === "status" && e.status ? (
+              STATUS_EMOJI[e.status as VisitStatusValue]
+            ) : (
+              <AuthorIcon author={e.author} />
+            )}
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-baseline gap-x-2 text-xs text-muted">
               <span className="font-semibold text-fg">{t(`visit.by.${e.author}`)}</span>
-              <time>{formatDateTime(e.createdAt, locale)}</time>
+              <time>{formatDateTime(e.createdAt, locale, tz)}</time>
             </div>
             <EventBody e={e} items={items} currency={currency} visitId={visitId} canDecide={canDecide} />
           </div>
@@ -61,6 +69,11 @@ export function Timeline({
       ))}
     </ol>
   );
+}
+
+function AuthorIcon({ author }: { author: string }) {
+  const Icon = AUTHOR_ICON[author as keyof typeof AUTHOR_ICON] ?? User;
+  return <Icon className="size-3.5" />;
 }
 
 function EventBody({ e, items, currency, visitId, canDecide }: { e: TimelineEvent; items: VisitWork[]; currency: string; visitId: string; canDecide: boolean }) {
@@ -79,7 +92,7 @@ function EventBody({ e, items, currency, visitId, canDecide }: { e: TimelineEven
       );
     case "work":
       return (
-        <div className="mt-1 flex items-center justify-between gap-3 text-sm">
+        <div className="mt-1 flex items-center justify-between gap-3 pr-1 text-sm">
           <span>{t("visit.event.work", { name: e.message ?? "" })}</span>
           <span className="tabular font-semibold">{formatMoney(Number(e.amount ?? 0), currency, locale)}</span>
         </div>

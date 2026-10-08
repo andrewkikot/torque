@@ -14,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { default: `Torque — ${t("tagline")}`, template: "%s · Torque" },
     description: t("tagline"),
     applicationName: "Torque",
-    appleWebApp: { capable: true, title: "Torque", statusBarStyle: "default" },
+    appleWebApp: { capable: true, title: "Torque", statusBarStyle: "black-translucent" },
   };
 }
 

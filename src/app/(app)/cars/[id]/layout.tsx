@@ -17,10 +17,10 @@ export default async function CarLayout({ children, params }: LayoutProps<"/cars
 
   return (
     <div style={accentStyle(car.accentColor)}>
-      <section className="no-print relative -mx-4 -mt-6 mb-6 overflow-hidden sm:mx-0 sm:mt-0 sm:rounded-4xl">
-        <CarPhoto car={car} bare className="h-64 w-full sm:h-72" rounded="rounded-none" />
+      <section className="no-print relative -mx-4 -mt-[max(1.5rem,env(safe-area-inset-top))] mb-5 overflow-hidden sm:mx-0 sm:mt-0 sm:rounded-4xl">
+        <CarPhoto car={car} bare className="h-[calc(16rem+env(safe-area-inset-top))] w-full sm:h-72" rounded="rounded-none" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-black/10" />
-        <div className="absolute inset-x-4 top-4 flex justify-between">
+        <div className="absolute inset-x-4 top-[max(1rem,env(safe-area-inset-top))] flex justify-between">
           <Link href="/garage" className="grid size-10 place-items-center rounded-full bg-black/30 text-white backdrop-blur-md hover:bg-black/45" aria-label={t("common.back")}>
             <ArrowLeft className="size-5" />
           </Link>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { useLocale, useTranslations } from "next-intl";
+import { useLocale, useTimeZone, useTranslations } from "next-intl";
 import { Receipt } from "lucide-react";
 import { formatDate, formatMoney, formatNumber } from "@/lib/format";
 import { Badge } from "@/components/ui/card";
@@ -27,9 +27,10 @@ type Item = {
 export function HistoryList({ items, units, carId, readOnly }: { items: Item[]; units: string; carId: string; readOnly?: boolean }) {
   const t = useTranslations();
   const locale = useLocale();
+  const tz = useTimeZone();
   const groups = new Map<string, Item[]>();
   for (const i of items) {
-    const key = formatDate(i.performedAt, locale, { month: "long", year: "numeric" });
+    const key = formatDate(i.performedAt, locale, { month: "long", year: "numeric" }, tz);
     groups.set(key, [...(groups.get(key) ?? []), i]);
   }
   return (
@@ -51,7 +52,7 @@ export function HistoryList({ items, units, carId, readOnly }: { items: Item[]; 
                         {Number(i.quantity) !== 1 && <span className="text-muted"> ×{Number(i.quantity)}</span>}
                       </div>
                       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
-                        <span>{formatDate(i.performedAt, locale)}</span>
+                        <span>{formatDate(i.performedAt, locale, undefined, tz)}</span>
                         {i.odometer != null && (
                           <span className="tabular">
                             · {formatNumber(i.odometer, locale)} {units}

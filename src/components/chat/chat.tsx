@@ -25,6 +25,7 @@ type ToolPart = {
 
 export function Chat({ initialMessages, carId, carName }: { initialMessages: UIMessage[]; carId?: string; carName?: string }) {
   const t = useTranslations("assistant");
+  const tt = useTranslations("terms");
   const router = useRouter();
   const [input, setInput] = useState("");
   const bottom = useRef<HTMLDivElement>(null);
@@ -130,7 +131,7 @@ export function Chat({ initialMessages, carId, carName }: { initialMessages: UIM
         }}
         className="sticky bottom-24 mt-6 lg:bottom-6"
       >
-        <div className="flex items-end gap-2 rounded-3xl border border-border bg-card p-2 shadow-xl focus-within:border-accent">
+        <div className="flex items-end gap-2 rounded-3xl border border-border bg-card p-2 shadow-xl focus-within:border-accent focus-within:ring-4 focus-within:ring-accent-soft transition-[border-color,box-shadow]">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -142,7 +143,7 @@ export function Chat({ initialMessages, carId, carName }: { initialMessages: UIM
             }}
             placeholder={t("placeholder")}
             rows={1}
-            className="max-h-40 min-h-11 flex-1 resize-none bg-transparent focus-visible:outline-none px-3 py-2.5 text-[15px] outline-none placeholder:text-subtle field-sizing-content"
+            className="max-h-40 min-h-11 flex-1 resize-none bg-transparent px-3 py-2.5 text-base outline-none sm:text-[15px] placeholder:text-subtle field-sizing-content"
           />
           {busy ? (
             <Button type="button" size="icon" variant="dark" onClick={stop} aria-label={t("stop")}>
@@ -154,6 +155,7 @@ export function Chat({ initialMessages, carId, carName }: { initialMessages: UIM
             </Button>
           )}
         </div>
+        <p className="mt-2 text-center text-[11px] text-muted">{tt("aiNote")}</p>
       </form>
     </div>
   );

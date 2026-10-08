@@ -13,6 +13,7 @@ import { LOCALE_COOKIE } from "@/i18n/config";
 import { run } from "./_result";
 import { isTelegramEmail } from "@/lib/services/telegram-login";
 import { AppError } from "@/lib/errors";
+import { TERMS_VERSION } from "@/lib/terms";
 
 const prefsInput = z
   .object({
@@ -34,6 +35,20 @@ export async function updatePrefsAction(input: unknown) {
     if (data.locale) {
       (await cookies()).set(LOCALE_COOKIE, data.locale, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
     }
+    revalidatePath("/", "layout");
+  });
+}
+
+/** Records acceptance of the current Terms version (and when). */
+export async function acceptTermsAction(version: string) {
+  const user = await requireUser();
+  return run(async () => {
+    if (version !== TERMS_VERSION) throw new AppError("invalid", "The terms have changed. Reload the page.");
+    await getSettings(user.id);
+    await db
+      .update(schema.userSettings)
+      .set({ termsVersion: TERMS_VERSION, termsAcceptedAt: new Date() })
+      .where(eq(schema.userSettings.userId, user.id));
     revalidatePath("/", "layout");
   });
 }

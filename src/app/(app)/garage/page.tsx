@@ -91,10 +91,10 @@ export default async function GaragePage({ searchParams }: PageProps<"/garage">)
           ))}
           <Link
             href="/cars/new"
-            className="grid min-h-64 place-items-center rounded-4xl border-2 border-dashed border-border text-muted transition hover:border-accent hover:text-accent"
+            className="grid min-h-24 place-items-center rounded-4xl border-2 border-dashed sm:min-h-64 border-border text-muted transition hover:border-accent hover:text-accent"
           >
-            <span className="flex flex-col items-center gap-2 font-semibold">
-              <Plus className="size-8" />
+            <span className="flex items-center gap-2 font-semibold sm:flex-col">
+              <Plus className="size-6 sm:size-8" />
               {t("garage.addCar")}
             </span>
           </Link>

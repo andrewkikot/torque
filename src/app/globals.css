@@ -57,23 +57,34 @@
   --radius-4xl: 2rem;
 }
 
-html {
-  -webkit-tap-highlight-color: transparent;
-}
+/* In the base layer so utilities (e.g. outline-none) can override these. */
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
 
-body {
-  background: var(--bg);
-  color: var(--fg);
-  font-feature-settings: "ss01", "cv11";
-}
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-feature-settings: "ss01", "cv11";
+  }
 
-::selection {
-  background: var(--accent-soft);
-}
+  ::selection {
+    background: var(--accent-soft);
+  }
 
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  /* Keyboard focus for buttons, links, switches. Outlines follow border-radius. */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* Text fields draw their own rounded ring (see Input / chat box), never a square outline. */
+  input:not([type="range"], [type="checkbox"], [type="radio"], [type="color"]):focus,
+  textarea:focus,
+  select:focus {
+    outline: none;
+  }
 }
 
 .tabular {
@@ -89,6 +100,9 @@ body {
 }
 
 /* Bottom nav needs room above the iOS home indicator. */
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
 .pb-safe {
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
 }

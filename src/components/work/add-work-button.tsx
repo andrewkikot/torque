@@ -17,6 +17,7 @@ export function AddWorkButton({
   plans,
   variant = "primary",
   className,
+  compact,
 }: {
   carId: string;
   currency: string;
@@ -25,15 +26,29 @@ export function AddWorkButton({
   plans: { id: string; name: string }[];
   variant?: "primary" | "outline" | "secondary";
   className?: string;
+  /** Square tile for the phone quick-actions row. */
+  compact?: boolean;
 }) {
   const t = useTranslations("car");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Button variant={variant} onClick={() => setOpen(true)} className={className}>
-        <Plus /> {t("logWork")}
-      </Button>
+      {compact ? (
+        <button
+          onClick={() => setOpen(true)}
+          className="flex flex-col items-center justify-center gap-1.5 rounded-3xl bg-accent px-2 py-3 text-center text-xs font-semibold text-accent-fg shadow-card active:scale-[0.97]"
+        >
+          <span className="grid size-10 place-items-center rounded-2xl bg-white/20">
+            <Plus className="size-5" />
+          </span>
+          <span className="line-clamp-2 leading-tight">{t("logWork")}</span>
+        </button>
+      ) : (
+        <Button variant={variant} onClick={() => setOpen(true)} className={className}>
+          <Plus /> {t("logWork")}
+        </Button>
+      )}
       <Sheet open={open} onClose={() => setOpen(false)} title={t("logWork")}>
         <WorkForm
           currency={currency}

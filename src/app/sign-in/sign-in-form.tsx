@@ -12,6 +12,7 @@ import { TelegramLogin } from "./telegram-login";
 
 export function SignInForm({ devMode, telegram, email: emailMode }: { devMode: boolean; telegram: boolean; email: "resend" | "telegram-only" | "dev" }) {
   const t = useTranslations("auth");
+  const tt = useTranslations("terms");
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -73,6 +74,15 @@ export function SignInForm({ devMode, telegram, email: emailMode }: { devMode: b
             <Button type="submit" size="lg" variant={telegram ? "outline" : "primary"} loading={busy}>
               {busy ? t("sending") : t("send")}
             </Button>
+            <p className="text-center text-xs text-muted">
+              {tt.rich("signInNote", {
+                terms: (chunks) => (
+                  <a href="/terms" target="_blank" className="font-semibold text-fg underline underline-offset-2">
+                    {chunks}
+                  </a>
+                ),
+              })}
+            </p>
           </motion.form>
         )}
       </AnimatePresence>

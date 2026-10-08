@@ -118,6 +118,9 @@ export const userSettings = pgTable("user_settings", {
   notifyMileageNudge: boolean("notify_mileage_nudge").notNull().default(true),
   // Car the bot uses by default when the user has several.
   defaultCarId: text("default_car_id"),
+  // Terms of Use: which version the user accepted, and when.
+  termsVersion: text("terms_version"),
+  termsAcceptedAt: timestamp("terms_accepted_at", { withTimezone: true }),
   updatedAt: updatedAt(),
 });
 

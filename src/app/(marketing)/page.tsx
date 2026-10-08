@@ -10,6 +10,7 @@ import { HeroDemo } from "@/components/landing/hero-demo";
 export default async function Landing() {
   if (await getCurrentUser()) redirect("/garage");
   const t = await getTranslations("landing");
+  const tTerms = await getTranslations("terms");
   const features = [
     { icon: Activity, title: t("f1Title"), body: t("f1") },
     { icon: BookOpen, title: t("f2Title"), body: t("f2") },
@@ -19,11 +20,11 @@ export default async function Landing() {
   return (
     <div className="relative min-h-dvh overflow-hidden">
       <div className="pointer-events-none absolute -top-40 left-1/2 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-accent/20 blur-3xl" />
-      <header className="relative mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
+      <header className="relative mx-auto flex max-w-6xl items-center justify-between px-4 pb-5 pt-[max(1.25rem,env(safe-area-inset-top))] sm:px-6">
         <Logo />
         <div className="flex items-center gap-2">
           <LocaleSwitch />
-          <ButtonLink href="/sign-in" variant="outline" size="sm">
+          <ButtonLink href="/sign-in" variant="outline" size="sm" className="hidden sm:inline-flex">
             {t("cta")}
           </ButtonLink>
         </div>
@@ -34,7 +35,7 @@ export default async function Landing() {
           <h1 className="font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">{t("hero")}</h1>
           <p className="mt-5 max-w-xl text-lg text-muted">{t("sub")}</p>
           <div className="mt-8 flex flex-wrap items-center gap-4">
-            <ButtonLink href="/sign-in" size="lg">
+            <ButtonLink href="/sign-in" size="lg" className="w-full sm:w-auto">
               {t("cta")} →
             </ButtonLink>
             <span className="text-sm text-muted">{t("free")}</span>
@@ -54,6 +55,11 @@ export default async function Landing() {
           </div>
         ))}
       </section>
+      <footer className="relative mx-auto max-w-6xl px-4 pb-10 text-center text-sm text-muted sm:px-6">
+        <a href="/terms" className="underline underline-offset-2">
+          {tTerms("title")}
+        </a>
+      </footer>
     </div>
   );
 }

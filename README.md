@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🔧 Torque — online car service book
 
-## Getting Started
+A friendly, mobile-first service book for your cars:
 
-First, run the development server:
+- **Live service tracking**: share a link with your mechanic, follow status, photos and costs, and approve extra work with one tap (in the app or in Telegram).
+- **Service book**: every repair, part and receipt on one timeline, with spend stats and a print/PDF export.
+- **Smart maintenance**: reminders by distance and by date, predicted from how much you actually drive.
+- **Cars**: add, edit, archive, delete, and personalize each car with a nickname, accent color and photo.
+- **AI mechanic assistant (bring your own key)**: works with Gemini, Groq, OpenRouter, Anthropic, OpenAI or any OpenAI-compatible endpoint. It can read your garage and, after you confirm, log mileage, work, visits and reminders.
+- **Telegram bot**: `/km 84500`, `/due`, `/visit`, approval buttons, daily reminders. If you've added an AI key, you can also write in plain language or send a photo of a receipt.
+- English 🇬🇧 and Ukrainian 🇺🇦, light and dark mode, installable as a PWA.
+
+## Free-tier architecture
+
+| Piece | Service (free plan) | How it stays free |
+|---|---|---|
+| App + API | **Vercel Hobby** (Next.js 16) | Serverless functions only. Image optimization is turned off (`images.unoptimized`). No KV, Edge Config or other paid add-ons. |
+| Database | **Neon Free** (0.5 GB, 100 CU-h) | `@neondatabase/serverless` HTTP driver and a lean schema. Files are kept out of the database. |
+| Photos | **Vercel Blob** (Hobby: 1 GB) | Images are resized to ≤1600px WebP in the browser and uploaded directly from the client. Uploads are rate-limited. |
+| Email | **Resend Free** (100/day) | Used only for magic links. |
+| Reminders | **Vercel Cron** (Hobby: once a day) | A single daily job, `vercel.json` → `/api/cron/daily`. |
+| Realtime | none | Visit pages re-fetch every 20–30 s while the tab is visible. |
+| Rate limiting | Postgres | The `usage_counters` and `rate_limit` tables, so no Redis is needed. |
+| AI | **The user's own key** | The project pays nothing. Keys are encrypted with AES-256-GCM. |
+
+> Vercel Hobby is for non-commercial use.
+
+## Local development
 
 ```bash
+npm install
+cp .env.example .env.local     # fill in values (see below)
+npm run db:migrate             # apply migrations
+npm run seed -- you@example.com   # optional demo garage
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Without `RESEND_API_KEY`, magic links are printed in the dev server console.
+- `DATABASE_URL` can point to a local Postgres or to a Neon dev branch. The driver is picked automatically: Neon HTTP for `*.neon.tech`, `pg` otherwise.
+- Generate the secrets:
+  ```bash
+  openssl rand -hex 32      # BETTER_AUTH_SECRET, CRON_SECRET, TELEGRAM_WEBHOOK_SECRET
+  openssl rand -base64 32   # ENCRYPTION_KEY (must be exactly 32 bytes)
+  ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Script | |
+|---|---|
+| `npm run dev` / `build` / `start` | Next.js |
+| `npm run typecheck` / `lint` / `test` | Quality checks. The tests include DB integration tests, which run only against a non-Neon `DATABASE_URL`. |
+| `npm run db:generate` / `db:migrate` / `db:studio` | Drizzle |
+| `npm run seed -- email` | Demo data |
+| `npm run telegram:setup` | Registers the bot webhook and command menu with the deployed URL |
 
-## Learn More
+## Deploying (all free)
 
-To learn more about Next.js, take a look at the following resources:
+1. **Neon**: create a project and copy the connection string into `DATABASE_URL`. Run `DATABASE_URL=... npm run db:migrate` once from your machine.
+2. **Telegram**: talk to [@BotFather](https://t.me/BotFather), run `/newbot`, then copy the token into `TELEGRAM_BOT_TOKEN` and the bot's username (without `@`) into `TELEGRAM_BOT_USERNAME`.
+3. **Resend**: create an API key and put it in `RESEND_API_KEY`. Without a verified domain you can only send to your own address. Verify a domain to send to anyone, and set `EMAIL_FROM`.
+4. **Vercel**: push to GitHub and import the repo (or run `npx vercel`).
+   - Under **Storage**, create a **Blob** store and connect it to the project. This adds `BLOB_READ_WRITE_TOKEN`.
+   - Add the rest of `.env.example` under **Settings → Environment Variables**. Set `NEXT_PUBLIC_APP_URL` to your production URL.
+   - Deploy. The cron in `vercel.json` is registered automatically.
+5. **Register the Telegram webhook** (once, and again whenever the URL changes):
+   ```bash
+   curl -H "Authorization: Bearer $CRON_SECRET" https://YOUR-APP.vercel.app/api/telegram/setup
+   ```
+6. Open the app, sign in, and connect AI and Telegram from **Settings**.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## How it fits together
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+src/
+  app/(marketing)/          landing
+  app/sign-in/              magic link
+  app/(app)/                garage, cars/[id]/{history,maintenance,visits,edit}, visits, assistant, settings
+  app/v/[token]/            public mechanic page (no account; token-authorized)
+  app/print/[id]/           printable service history
+  app/actions/              server actions (thin wrappers around services)
+  app/api/                  auth, chat (AI streaming), telegram webhook, cron, upload
+  db/schema.ts              Drizzle schema + migrations
+  lib/domain/               pure logic: visit status machine, maintenance prediction
+  lib/services/             the domain layer, used by web, AI tools AND the bot; every call is user-scoped
+  lib/ai/                   BYOK provider factory, key encryption, tools, prompt
+  lib/bot/                  grammY bot (commands, approvals, AI chat)
+messages/{en,uk}.json       translations shared by the web app and the bot
+```
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Security notes**
+- AI keys are encrypted at rest and never sent to the browser; the UI only shows a hint like `sk-…abcd`.
+- AI write actions use AI SDK tool approvals, and the approvals are HMAC-signed. A tampered approval is rejected.
+- Custom AI base URLs must use https, and private network addresses are blocked in production.
+- Mechanic links are unguessable 21-character tokens. Owners can disable or rotate a link. The page shows only basic car info: no VIN and no owner details.
+- Telegram webhook requests are checked with Telegram's secret header. Cron and setup endpoints require `CRON_SECRET`.
+- Uploaded photos are public Blob URLs with random suffixes, so anyone who has the URL can open them.

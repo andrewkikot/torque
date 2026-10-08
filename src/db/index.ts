@@ -15,9 +15,16 @@ function createDb() {
   return drizzlePg(url, { schema }) as unknown as ReturnType<typeof drizzleNeon<typeof schema>>;
 }
 
-const globalForDb = globalThis as unknown as { db?: ReturnType<typeof createDb> };
+type Db = ReturnType<typeof createDb>;
+const globalForDb = globalThis as unknown as { db?: Db };
 
-export const db = globalForDb.db ?? createDb();
-if (process.env.NODE_ENV !== "production") globalForDb.db = db;
+/** Connects lazily, so builds don't need DATABASE_URL just to import this module. */
+export const db = new Proxy({} as Db, {
+  get(_, prop) {
+    globalForDb.db ??= createDb();
+    const value = Reflect.get(globalForDb.db, prop);
+    return typeof value === "function" ? value.bind(globalForDb.db) : value;
+  },
+});
 
 export { schema };

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
-import { ArrowLeft, Phone, User, Clock, Gauge, Link2 } from "lucide-react";
+import { ArrowLeft, Phone, User, Clock, Gauge, Link2, CarFront } from "lucide-react";
+import { ButtonLink } from "@/components/ui/button";
 import { requireWorkshop } from "@/lib/workshop-context";
 import { getJob, vehicleLabel } from "@/lib/services/visits";
 import { AppError } from "@/lib/errors";
@@ -90,6 +91,11 @@ export default async function JobPage({ params }: PageProps<"/w/jobs/[id]">) {
               </div>
             )}
           </Card>
+          {job.car?.userId === user.id && (
+            <ButtonLink href={`/visits/${job.id}`} variant="outline">
+              <CarFront /> {t("mode.viewAsOwner")}
+            </ButtonLink>
+          )}
           <JobWork visitId={job.id} items={job.workItems} currency={job.currency} closed={closed} />
           <TrackingLinkPanel visitId={job.id} token={job.shareToken} enabled={job.shareEnabled} appUrl={appUrl()} title={`${vehicleLabel(job)} · ${job.title}`} linked={!!job.carId} />
         </aside>

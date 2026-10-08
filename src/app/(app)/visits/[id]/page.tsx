@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
-import { ArrowLeft, Clock, Gauge } from "lucide-react";
+import { ArrowLeft, Clock, Gauge, Wrench } from "lucide-react";
+import { membership } from "@/lib/services/workshops";
+import { ButtonLink } from "@/components/ui/button";
 import { requireUser, getSettings } from "@/lib/session";
 import { getVisit } from "@/lib/services/visits";
 import { addNoteAction, decideApprovalAction } from "@/app/actions/visits";
@@ -28,6 +30,8 @@ export default async function VisitPage({ params }: PageProps<"/visits/[id]">) {
   });
   const car = visit.car!;
   const settings = await getSettings(user.id);
+  // Same person on both sides (e.g. a mechanic servicing their own car): offer the workshop view.
+  const staff = visit.workshopId ? await membership(user.id, visit.workshopId) : null;
   const t = await getTranslations();
   const locale = await getLocale();
   const tz = await getTimeZone();
@@ -81,6 +85,11 @@ export default async function VisitPage({ params }: PageProps<"/visits/[id]">) {
         <aside className="order-1 flex flex-col gap-4 lg:order-2">
           {visit.workshop && <WorkshopCard workshop={visit.workshop} />}
           <WorkPanel items={visit.workItems} currency={visit.currency} units={settings.units} closed readOnly />
+          {staff && (
+            <ButtonLink href={`/w/jobs/${visit.id}`} variant="dark">
+              <Wrench /> {t("mode.openInWorkshop")}
+            </ButtonLink>
+          )}
           {!closed && (
             <div className="px-1">
               <NotMyCarButton visitId={visit.id} />

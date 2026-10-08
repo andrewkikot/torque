@@ -32,7 +32,7 @@ export function SignInForm({
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const { error } = await authClient.signIn.magicLink({ email, callbackURL: next, newUserCallbackURL: next === "/garage" ? "/garage?welcome=1" : next });
+    const { error } = await authClient.signIn.magicLink({ email, callbackURL: next, newUserCallbackURL: next === "/start" ? "/garage?welcome=1" : next });
     setBusy(false);
     if (error) setError(error.message || t("error"));
     else setSent(true);

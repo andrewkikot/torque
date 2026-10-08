@@ -692,5 +692,14 @@
     "ctaTitle": "Keep your car's story too",
     "ctaSub": "Service book, reminders and live updates from your workshop. Free.",
     "disclaimer": "Shared by the car's owner. Torque does not verify owner-entered records. <terms>Terms</terms>"
+  },
+  "mode": {
+    "label": "Switch between your garage and workshop",
+    "toWorkshop": "Workshop · {name}",
+    "toGarage": "My garage",
+    "workshopShort": "Workshop",
+    "garageShort": "My garage",
+    "openInWorkshop": "Open in workshop",
+    "viewAsOwner": "View as car owner"
   }
 }

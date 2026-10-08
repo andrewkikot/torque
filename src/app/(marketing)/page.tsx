@@ -8,7 +8,7 @@ import { LocaleSwitch } from "@/components/locale-switch";
 import { HeroDemo } from "@/components/landing/hero-demo";
 
 export default async function Landing() {
-  if (await getCurrentUser()) redirect("/garage");
+  if (await getCurrentUser()) redirect("/start");
   const t = await getTranslations("landing");
   const tTerms = await getTranslations("terms");
   const features = [

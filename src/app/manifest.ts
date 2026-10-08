@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Torque — car service book",
     short_name: "Torque",
     description: "Your car's story, beautifully kept.",
-    start_url: "/garage",
+    start_url: "/start",
     display: "standalone",
     background_color: "#f6f3ee",
     theme_color: "#f97316",

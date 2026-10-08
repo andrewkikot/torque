@@ -3,33 +3,40 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { CarFront, Wrench, Sparkles, Settings2, Warehouse } from "lucide-react";
+import { CarFront, Wrench, Sparkles, Settings2 } from "lucide-react";
+import { ModeMemory, ModeSwitchSegmented, ModeSwitchTab } from "./mode-switch";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { Logo } from "./logo";
 
-const baseItems = [
+const items = [
   { href: "/garage", key: "garage", icon: CarFront, match: ["/garage", "/cars"] },
   { href: "/visits", key: "service", icon: Wrench, match: ["/visits"] },
   { href: "/assistant", key: "assistant", icon: Sparkles, match: ["/assistant"] },
   { href: "/settings", key: "settings", icon: Settings2, match: ["/settings"] },
 ] as const;
 
-const workshopItem = { href: "/w", key: "workshop", icon: Warehouse, match: ["/w"] } as const;
+type WorkshopInfo = { name: string; logoUrl: string | null; accentColor: string } | null;
 
-export function AppNav({ userName, hasWorkshop }: { userName: string; hasWorkshop: boolean }) {
+/** Client (car owner) navigation. Workshop members also get a switch to their workshop. */
+export function AppNav({ userName, workshop }: { userName: string; workshop: WorkshopInfo }) {
   const t = useTranslations("nav");
   const pathname = usePathname();
-  const items = hasWorkshop ? [...baseItems.slice(0, 3), workshopItem, baseItems[3]] : baseItems;
   const isActive = (m: readonly string[]) => m.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
   return (
     <>
       {/* Desktop sidebar */}
       <aside className="no-print fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-border bg-bg-elevated px-4 py-6 lg:flex">
-        <Link href="/garage" className="mb-8 px-2">
+        <ModeMemory mode="garage" />
+        <Link href="/garage" className={cn("px-2", workshop ? "mb-5" : "mb-8")}>
           <Logo />
         </Link>
+        {workshop && (
+          <div className="mb-6">
+            <ModeSwitchSegmented mode="garage" workshop={workshop} />
+          </div>
+        )}
         <nav className="flex flex-col gap-1">
           {items.map(({ href, key, icon: Icon, match }) => {
             const active = isActive(match);
@@ -56,7 +63,7 @@ export function AppNav({ userName, hasWorkshop }: { userName: string; hasWorksho
 
       {/* Mobile bottom bar */}
       <nav className="no-print fixed inset-x-0 bottom-0 z-30 border-t border-border bg-bg-elevated/90 pb-safe backdrop-blur-xl lg:hidden">
-        <div className={cn("mx-auto grid max-w-md px-1 pt-2", hasWorkshop ? "grid-cols-5" : "grid-cols-4")}>
+        <div className={cn("mx-auto grid max-w-md px-1 pt-2", workshop ? "grid-cols-5" : "grid-cols-4")}>
           {items.map(({ href, key, icon: Icon, match }) => {
             const active = isActive(match);
             return (
@@ -71,6 +78,7 @@ export function AppNav({ userName, hasWorkshop }: { userName: string; hasWorksho
               </Link>
             );
           })}
+          {workshop && <ModeSwitchTab mode="garage" workshop={workshop} />}
         </div>
       </nav>
     </>

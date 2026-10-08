@@ -5,13 +5,13 @@ import { STATUS_EMOJI } from "@/lib/domain/visit-status";
 import { formatDate, formatMoney } from "@/lib/format";
 import { accentStyle, cn } from "@/lib/utils";
 import { visitTotalClient } from "./total";
-import type { Car, ServiceVisit } from "@/db/schema";
+import type { Car, ServiceVisit, Workshop } from "@/db/schema";
 
 export function VisitRow({
   visit,
   showCar = true,
 }: {
-  visit: ServiceVisit & { car: Car; workItems: { cost: string; approved: boolean }[] };
+  visit: ServiceVisit & { car: Car; workshop?: Workshop | null; workItems: { cost: string; approved: boolean }[] };
   showCar?: boolean;
 }) {
   const t = useTranslations();
@@ -33,7 +33,7 @@ export function VisitRow({
         <span className="block truncate font-semibold">{visit.title}</span>
         <span className="block truncate text-sm text-muted">
           {showCar && <>{name} · </>}
-          {visit.shopName && <>{visit.shopName} · </>}
+          {(visit.workshop?.name ?? visit.shopName) && <>{visit.workshop?.name ?? visit.shopName} · </>}
           <span className={cn(active && "font-semibold text-accent")}>{t(`status.${visit.status}`)}</span>
           {" · "}
           {formatDate(visit.completedAt ?? visit.plannedAt ?? visit.createdAt, locale, undefined, tz)}

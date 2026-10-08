@@ -25,15 +25,18 @@ export function WorkPanel({
   onRemove,
   shareToken,
   addLabel,
+  readOnly,
 }: {
   items: VisitWork[];
   currency: string;
   units: string;
   closed: boolean;
-  onAdd: (p: WorkPayload) => Promise<R>;
+  onAdd?: (p: WorkPayload) => Promise<R>;
   onRemove?: (id: string) => Promise<R>;
   shareToken?: string;
   addLabel?: string;
+  /** Owner/customer view: no add/remove controls. */
+  readOnly?: boolean;
 }) {
   const t = useTranslations("visit");
   const locale = useLocale();
@@ -45,7 +48,7 @@ export function WorkPanel({
     <Card>
       <div className="mb-3 flex items-center justify-between">
         <h3 className="font-display font-semibold">{t("work")}</h3>
-        {!closed && (
+        {!closed && !readOnly && (
           <Button size="sm" variant="secondary" onClick={() => setOpen(true)}>
             <Plus /> {t("addWork")}
           </Button>
@@ -92,7 +95,7 @@ export function WorkPanel({
           currency={currency}
           units={units}
           shareToken={shareToken}
-          onSubmit={onAdd}
+          onSubmit={onAdd ?? (async () => ({ ok: false, error: "read-only" }))}
           onDone={() => {
             setOpen(false);
             router.refresh();

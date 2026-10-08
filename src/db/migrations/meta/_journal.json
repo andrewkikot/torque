@@ -22,6 +22,13 @@
       "when": 1791454164611,
       "tag": "0002_terms_acceptance",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791457183301,
+      "tag": "0003_workshops",
+      "breakpoints": true
     }
   ]
 }

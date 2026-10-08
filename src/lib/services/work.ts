@@ -45,7 +45,7 @@ export async function addWork(userId: string, raw: unknown, opts: { source?: "we
 
 export async function deleteWork(userId: string, workId: string) {
   const item = await db.query.workItems.findFirst({ where: eq(workItems.id, workId) });
-  if (!item) notFound("Work item");
+  if (!item || !item.carId) notFound("Work item");
   await getCar(userId, item.carId);
   await db.delete(workItems).where(eq(workItems.id, workId));
 }

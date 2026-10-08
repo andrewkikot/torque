@@ -2,7 +2,11 @@
 
 A friendly, mobile-first service book for your cars:
 
-- **Live service tracking**: share a link with your mechanic, follow status, photos and costs, and approve extra work with one tap (in the app or in Telegram).
+- **Workshops run the visits, owners follow along**:
+  - Workshops get a team account (owner plus invited mechanics) with a job board.
+  - At drop-off the owner taps **Show to mechanic**. The mechanic scans the one-time QR with the phone camera, or types the `TQ-` code, and the job is attached to the car.
+  - Customers without Torque get a tracking link they can follow on the web or in Telegram, and can later save the job to a garage.
+  - Owners see status, photos and costs on the car page and in Telegram, approve extra work with one tap, and message the workshop. Finished work goes into the service book automatically.
 - **Service book**: every repair, part and receipt on one timeline, with spend stats and a print/PDF export.
 - **Smart maintenance**: reminders by distance and by date, predicted from how much you actually drive.
 - **Cars**: add, edit, archive, delete, and personalize each car with a nickname, accent color and photo.
@@ -69,6 +73,15 @@ npm run dev
    ```
 6. Open the app, sign in, and connect AI and Telegram from **Settings**.
 
+## For workshops
+1. Sign in and open **Settings → For workshops → Create a workshop** (or `/w/create`).
+2. Invite mechanics from **Team**. The invite link is valid for 7 days.
+3. **New job**:
+   - Scan the customer's QR with the phone camera (it opens `/w/checkin/<code>`).
+   - Or type their `TQ-` code.
+   - Or add a walk-in customer and send them the tracking link.
+4. Move statuses, add work and photos, and ask for approval. The owner or customer is notified in Telegram. Mechanics who connected Telegram get a message when the customer approves, declines or writes.
+
 ## How it fits together
 
 ```
@@ -76,7 +89,8 @@ src/
   app/(marketing)/          landing
   app/sign-in/              magic link
   app/(app)/                garage, cars/[id]/{history,maintenance,visits,edit}, visits, assistant, settings
-  app/v/[token]/            public mechanic page (no account; token-authorized)
+  app/(workshop)/w/         workshop: job board, new job, QR check-in, job page, team, join/create
+  app/v/[token]/            public customer tracking page (read-only + approvals; token-authorized)
   app/print/[id]/           printable service history
   app/actions/              server actions (thin wrappers around services)
   app/api/                  auth, chat (AI streaming), telegram webhook, cron, upload
@@ -92,6 +106,8 @@ messages/{en,uk}.json       translations shared by the web app and the bot
 - AI keys are encrypted at rest and never sent to the browser; the UI only shows a hint like `sk-…abcd`.
 - AI write actions use AI SDK tool approvals, and the approvals are HMAC-signed. A tampered approval is rejected.
 - Custom AI base URLs must use https, and private network addresses are blocked in production.
-- Mechanic links are unguessable 21-character tokens. Owners can disable or rotate a link. The page shows only basic car info: no VIN and no owner details.
+- Only members of the workshop can change a job. Owners and customers can only approve, decline and write notes.
+- Check-in codes are single-use (the code changes after each check-in) and attempts are rate-limited. The owner is notified and can reply "Not my car".
+- Customer tracking links are unguessable 21-character tokens. The workshop can rotate a link. The page shows no VIN and no owner details.
 - Telegram webhook requests are checked with Telegram's secret header. Cron and setup endpoints require `CRON_SECRET`.
 - Uploaded photos are public Blob URLs with random suffixes, so anyone who has the URL can open them.

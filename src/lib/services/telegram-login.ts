@@ -64,7 +64,7 @@ export async function decideLogin(id: string, userId: string | null, approved: b
  * Called by the waiting browser. Once approved, mints a one-time magic link (captured, not sent)
  * so the session cookie is set in *this* browser when it follows the URL.
  */
-export async function pollLogin(id: string, headers: Headers): Promise<{ status: "pending" | "declined" | "expired" } | { status: "approved"; url: string }> {
+export async function pollLogin(id: string, headers: Headers, next = "/garage"): Promise<{ status: "pending" | "declined" | "expired" } | { status: "approved"; url: string }> {
   const row = await db.query.telegramLogins.findFirst({ where: eq(telegramLogins.id, id) });
   if (!row || row.expiresAt < new Date() || row.status === "consumed") return { status: "expired" };
   if (row.status === "pending" || row.status === "declined") return { status: row.status };
@@ -79,6 +79,6 @@ export async function pollLogin(id: string, headers: Headers): Promise<{ status:
     .returning();
   if (!claimed) return { status: "expired" };
   const store: { url?: string } = {};
-  await magicCapture.run(store, () => auth.api.signInMagicLink({ body: { email: u.email, callbackURL: "/garage" }, headers }));
+  await magicCapture.run(store, () => auth.api.signInMagicLink({ body: { email: u.email, callbackURL: next }, headers }));
   return store.url ? { status: "approved", url: store.url } : { status: "expired" };
 }

@@ -35,7 +35,8 @@
     "garage": "Garage",
     "service": "Service",
     "assistant": "Assistant",
-    "settings": "Settings"
+    "settings": "Settings",
+    "workshop": "Workshop"
   },
   "landing": {
     "hero": "The service book your car deserves",
@@ -49,7 +50,10 @@
     "f3": "Torque learns how much you drive and predicts what's due next — by distance and by date.",
     "f4Title": "Telegram & AI",
     "f4": "Send “/km 84500” to the bot. Ask the assistant “what's due on my Golf?”. Bring your own AI key.",
-    "free": "Free & open. No ads."
+    "free": "Free & open. No ads.",
+    "wsTitle": "Run a workshop?",
+    "wsSub": "Keep a job board for your team, check cars in with the customer's QR code, ask for approval of extra work and keep customers updated automatically. Free.",
+    "wsCta": "Create a workshop"
   },
   "auth": {
     "title": "Welcome to Torque",
@@ -212,8 +216,8 @@
     "create": "Start tracking",
     "active": "Active",
     "past": "Past",
-    "empty": "No service visits yet",
-    "emptySub": "Start a visit when your car goes to the shop — and share the live link with your mechanic.",
+    "empty": "No shop visits yet",
+    "emptySub": "At the workshop, open your car and tap “Show to mechanic”. They scan the code and you'll see every update here and in Telegram.",
     "advance": "Move to “{status}”",
     "setStatus": "Set status",
     "complete": "Mark completed",
@@ -246,7 +250,9 @@
       "owner": "You",
       "shop": "Shop",
       "bot": "Telegram",
-      "ai": "Assistant"
+      "ai": "Assistant",
+      "you": "You",
+      "customer": "Customer"
     },
     "event": {
       "status": "Status → {status}",
@@ -254,7 +260,13 @@
       "approvalDecision": "Extra work {approved, select, true {approved} other {declined}}"
     },
     "details": "Details",
-    "odometer": "Mileage at drop-off"
+    "odometer": "Mileage at drop-off",
+    "sub": "Your workshop updates these. You follow along and approve extra work.",
+    "emptyAction": "Open my garage",
+    "messageWorkshop": "Message the workshop…",
+    "notMyCar": "Not my car",
+    "notMyCarTitle": "Not your car?",
+    "notMyCarSub": "The job will be removed from your garage and the workshop will be told. Your check-in code will change."
   },
   "work": {
     "name": "What was done",
@@ -424,7 +436,15 @@
     "dueTitle": "🔧 Maintenance reminder",
     "dueOverdue": "⚠️ {name} — overdue",
     "dueSoon": "⏰ {name} — {when}",
-    "nudge": "📍 It's been a while! What's the mileage on {car} now? Reply /km 12345"
+    "nudge": "📍 It's been a while! What's the mileage on {car} now? Reply /km 12345",
+    "checkedInTitle": "{workshop} checked in your car",
+    "checkedInSub": "You'll get updates here. Not your car? Tap below.",
+    "notMyCar": "Not my car",
+    "wsApproved": "✅ Customer approved extra work ({amount})",
+    "wsDeclined": "❌ Customer declined extra work",
+    "wsNote": "Message from the customer",
+    "wsDetached": "⚠️ The owner says this is not their car. The job was detached.",
+    "openJob": "Open job"
   },
   "bot": {
     "welcome": "👋 Hi! I'm the Torque bot.\n\nConnect me to your garage from Settings → Telegram in the app, then you can:\n/km 84500 — update mileage\n/cars — your cars\n/due — what's due soon\n/visit — active shop visits\n/lang — language",
@@ -460,7 +480,10 @@
     "loginDeclined": "Sign-in declined.",
     "loginExpired": "This sign-in request has expired. Start again in the app.",
     "magicLink": "🔑 Your Torque sign-in link (valid 15 minutes):",
-    "signInButton": "Sign in"
+    "signInButton": "Sign in",
+    "trackInvalid": "This tracking link is not valid anymore.",
+    "trackFollowing": "🔔 You're following {vehicle} at {workshop}.\nStatus: {status}\n\nI'll message you on every update.",
+    "detached": "Done: the job was removed from your garage and the workshop was told."
   },
   "shop": {
     "title": "Service job",
@@ -478,7 +501,8 @@
     "noteSent": "Update sent",
     "workAdded": "Work added",
     "poweredBy": "Powered by Torque — the friendly car service book",
-    "closed": "This visit is closed."
+    "closed": "This visit is closed.",
+    "notePlaceholder": "Update for the customer…"
   },
   "errors": {
     "not_found": "Not found",
@@ -520,5 +544,98 @@
     "shopNote": "Updates posted here are the workshop's own statements. <terms>Terms</terms>",
     "aiNote": "AI can be wrong. Not professional advice: you decide and you are responsible.",
     "botBlocked": "Please accept the Terms of Use in the app first:"
+  },
+  "checkin": {
+    "button": "Show to mechanic",
+    "title": "Show this to your mechanic",
+    "codeLabel": "Check-in code",
+    "step1": "The mechanic points their phone camera at the QR, or types the code in Torque.",
+    "step2": "They confirm the job. You get a notification right away.",
+    "step3": "Follow status, photos and costs here and in Telegram. The code works once.",
+    "newCode": "New code"
+  },
+  "tracking": {
+    "telegramTitle": "Get updates in Telegram",
+    "telegramSub": "Status changes, photos and approval requests, right in the chat. No account needed.",
+    "telegramButton": "Follow in Telegram",
+    "saveTitle": "Save to my Torque garage",
+    "saveSub": "Keep this job in your car's service history.",
+    "saveSignIn": "Sign in to save",
+    "saveNewCar": "Add as a new car",
+    "saveButton": "Save to garage",
+    "saved": "Saved to your garage"
+  },
+  "workshop": {
+    "nav": {
+      "board": "Jobs",
+      "newJob": "New job",
+      "team": "Team",
+      "myGarage": "Garage"
+    },
+    "workingOnIt": "Workshop",
+    "call": "Call",
+    "trackingTitle": "Customer link",
+    "trackingSub": "Send it to the customer: they follow the job, approve extra work and can subscribe in Telegram.",
+    "trackingLinked": "The owner already gets updates in Torque. Share the link if someone else should follow the job.",
+    "boardSub": "Cars in the workshop right now",
+    "search": "Search plate, customer or job",
+    "filter": {
+      "active": "In work",
+      "waiting": "Waiting",
+      "ready": "Ready",
+      "done": "Done"
+    },
+    "noResults": "Nothing found",
+    "emptyTitle": "No jobs yet",
+    "emptySub": "Scan a customer's code or add a walk-in to start your first job.",
+    "walkIn": "Walk-in",
+    "linkedNote": "Linked to the owner's Torque garage: finished work goes into their service book.",
+    "newTitle": "New job",
+    "newSub": "Check in a car with the customer's code, or add a walk-in customer.",
+    "scanTitle": "Scan the customer's QR",
+    "scanSub": "Ask the customer to open their car in Torque and tap “Show to mechanic”. Point your phone camera at the QR: the check-in page opens.",
+    "enterCode": "Enter code",
+    "enterCodeSub": "The TQ-code under the customer's QR.",
+    "continue": "Continue",
+    "walkInTitle": "Walk-in customer",
+    "walkInSub": "No Torque? Add the car and send the customer a tracking link.",
+    "customerName": "Customer name",
+    "customerPhone": "Phone",
+    "createJob": "Create job",
+    "checkInButton": "Check in",
+    "checkInTitle": "Check in this car",
+    "checkInSub": "It will be added to the {workshop} board and the owner will be notified.",
+    "codeInvalidTitle": "Code not valid",
+    "codeInvalidSub": "Codes work once. Ask the customer to show their current code again.",
+    "needWorkshopTitle": "Create your workshop first",
+    "needWorkshopSub": "Check-ins are added to a workshop's job board.",
+    "createTitle": "Create a workshop",
+    "createSub": "You'll be the owner and can invite mechanics.",
+    "createButton": "Create workshop",
+    "name": "Workshop name",
+    "city": "City",
+    "phone": "Phone",
+    "address": "Address",
+    "inviteExpired": "Invite expired",
+    "inviteExpiredSub": "Ask the workshop owner for a new link.",
+    "joinTitle": "Join {workshop}",
+    "joinSub": "You'll see the job board and can update the cars you work on.",
+    "joinButton": "Join workshop",
+    "openBoard": "Open job board",
+    "settingsTitle": "Workshop",
+    "team": "Team",
+    "role": {
+      "owner": "Owner",
+      "mechanic": "Mechanic"
+    },
+    "leave": "Leave workshop",
+    "remove": "Remove",
+    "inviteTitle": "Invite a mechanic",
+    "inviteSub": "Anyone with this link can join for 7 days.",
+    "inviteButton": "Create invite link",
+    "switch": "Switch workshop",
+    "forWorkshops": "For workshops",
+    "forWorkshopsSub": "Mechanic or workshop owner? Run your jobs in Torque and keep customers updated automatically.",
+    "memberOf": "You're on the team: {names}"
   }
 }

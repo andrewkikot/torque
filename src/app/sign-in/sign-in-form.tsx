@@ -10,7 +10,17 @@ import { Input } from "@/components/ui/field";
 import { Card } from "@/components/ui/card";
 import { TelegramLogin } from "./telegram-login";
 
-export function SignInForm({ devMode, telegram, email: emailMode }: { devMode: boolean; telegram: boolean; email: "resend" | "telegram-only" | "dev" }) {
+export function SignInForm({
+  devMode,
+  telegram,
+  email: emailMode,
+  next,
+}: {
+  devMode: boolean;
+  telegram: boolean;
+  email: "resend" | "telegram-only" | "dev";
+  next: string;
+}) {
   const t = useTranslations("auth");
   const tt = useTranslations("terms");
   const [email, setEmail] = useState("");
@@ -22,7 +32,7 @@ export function SignInForm({ devMode, telegram, email: emailMode }: { devMode: b
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const { error } = await authClient.signIn.magicLink({ email, callbackURL: "/garage", newUserCallbackURL: "/garage?welcome=1" });
+    const { error } = await authClient.signIn.magicLink({ email, callbackURL: next, newUserCallbackURL: next === "/garage" ? "/garage?welcome=1" : next });
     setBusy(false);
     if (error) setError(error.message || t("error"));
     else setSent(true);
@@ -51,7 +61,7 @@ export function SignInForm({ devMode, telegram, email: emailMode }: { devMode: b
             </div>
             {telegram && (
               <>
-                <TelegramLogin />
+                <TelegramLogin next={next} />
                 <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-wider text-subtle">
                   <span className="h-px flex-1 bg-border" />
                   {t("or")}

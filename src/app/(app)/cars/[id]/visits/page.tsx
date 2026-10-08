@@ -1,10 +1,10 @@
 import { getTranslations } from "next-intl/server";
-import { Plus } from "lucide-react";
 import { loadCar } from "@/lib/page-data";
 import { listVisits } from "@/lib/services/visits";
 import { VisitRow } from "@/components/visit/visit-row";
-import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/card";
+import { ShowToMechanic } from "@/components/car/show-to-mechanic";
+import { appUrl } from "@/lib/app-url";
 
 export default async function CarVisitsPage({ params }: PageProps<"/cars/[id]/visits">) {
   const { id } = await params;
@@ -14,9 +14,7 @@ export default async function CarVisitsPage({ params }: PageProps<"/cars/[id]/vi
   return (
     <>
       <div className="mb-5 flex justify-end">
-        <ButtonLink href={`/visits/new?carId=${car.id}`}>
-          <Plus /> {t("newTitle")}
-        </ButtonLink>
+        <ShowToMechanic carId={car.id} appUrl={appUrl()} variant="button" />
       </div>
       {visits.length ? (
         <div className="flex flex-col gap-3">

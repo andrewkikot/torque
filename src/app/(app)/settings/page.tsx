@@ -6,12 +6,14 @@ import { PreferencesCard } from "@/components/settings/prefs";
 import { TelegramCard } from "@/components/settings/telegram";
 import { AiCard } from "@/components/settings/ai";
 import { isTelegramEmail } from "@/lib/services/telegram-login";
+import { myWorkshops } from "@/lib/services/workshops";
+import { WorkshopEntryCard } from "@/components/settings/workshop-card";
 
 export const metadata = { title: "Settings" };
 
 export default async function SettingsPage() {
   const user = await requireUser();
-  const [settings, ai] = await Promise.all([getSettings(user.id), getPublicAiSettings(user.id)]);
+  const [settings, ai, workshops] = await Promise.all([getSettings(user.id), getPublicAiSettings(user.id), myWorkshops(user.id)]);
   const t = await getTranslations("settings");
   return (
     <div className="mx-auto max-w-2xl">
@@ -24,6 +26,7 @@ export default async function SettingsPage() {
           username={settings.telegramUsername}
           bot={process.env.TELEGRAM_BOT_USERNAME ?? null}
         />
+        <WorkshopEntryCard workshops={workshops.map((w) => ({ id: w.workshop.id, name: w.workshop.name }))} />
         <PreferencesCard
           name={user.name}
           email={isTelegramEmail(user.email) ? null : user.email}

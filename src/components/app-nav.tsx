@@ -3,21 +3,24 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { CarFront, Wrench, Sparkles, Settings2 } from "lucide-react";
+import { CarFront, Wrench, Sparkles, Settings2, Warehouse } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { Logo } from "./logo";
 
-const items = [
+const baseItems = [
   { href: "/garage", key: "garage", icon: CarFront, match: ["/garage", "/cars"] },
   { href: "/visits", key: "service", icon: Wrench, match: ["/visits"] },
   { href: "/assistant", key: "assistant", icon: Sparkles, match: ["/assistant"] },
   { href: "/settings", key: "settings", icon: Settings2, match: ["/settings"] },
 ] as const;
 
-export function AppNav({ userName }: { userName: string }) {
+const workshopItem = { href: "/w", key: "workshop", icon: Warehouse, match: ["/w"] } as const;
+
+export function AppNav({ userName, hasWorkshop }: { userName: string; hasWorkshop: boolean }) {
   const t = useTranslations("nav");
   const pathname = usePathname();
+  const items = hasWorkshop ? [...baseItems.slice(0, 3), workshopItem, baseItems[3]] : baseItems;
   const isActive = (m: readonly string[]) => m.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
   return (
@@ -53,18 +56,18 @@ export function AppNav({ userName }: { userName: string }) {
 
       {/* Mobile bottom bar */}
       <nav className="no-print fixed inset-x-0 bottom-0 z-30 border-t border-border bg-bg-elevated/90 pb-safe backdrop-blur-xl lg:hidden">
-        <div className="mx-auto grid max-w-md grid-cols-4 px-2 pt-2">
+        <div className={cn("mx-auto grid max-w-md px-1 pt-2", hasWorkshop ? "grid-cols-5" : "grid-cols-4")}>
           {items.map(({ href, key, icon: Icon, match }) => {
             const active = isActive(match);
             return (
               <Link key={href} href={href} className="flex flex-col items-center gap-1 py-1">
-                <span className={cn("relative grid h-8 w-14 place-items-center rounded-full transition", active ? "text-accent-fg" : "text-muted")}>
+                <span className={cn("relative grid h-8 w-12 place-items-center rounded-full transition", active ? "text-accent-fg" : "text-muted")}>
                   {active && (
                     <motion.span layoutId="tab-pill" className="absolute inset-0 rounded-full bg-accent" transition={{ type: "spring", damping: 30, stiffness: 400 }} />
                   )}
                   <Icon className="relative size-5" />
                 </span>
-                <span className={cn("text-[11px] font-semibold", active ? "text-fg" : "text-muted")}>{t(key)}</span>
+                <span className={cn("max-w-full truncate px-0.5 text-[11px] font-semibold", active ? "text-fg" : "text-muted")}>{t(key)}</span>
               </Link>
             );
           })}

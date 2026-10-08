@@ -123,3 +123,49 @@ export async function getReadings(userId: string, carId: string) {
 export function carLabel(car: { nickname: string | null; make: string; model: string; year?: number | null }) {
   return car.nickname || `${car.make} ${car.model}`;
 }
+
+/* ───────────── Check-in codes ("Show to mechanic") ───────────── */
+
+const CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"; // no 0/O, 1/I/L
+
+function newCode() {
+  const bytes = crypto.getRandomValues(new Uint8Array(6));
+  return Array.from(bytes, (b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join("");
+}
+
+/** "tq-7k4m q2" → "7K4MQ2" */
+export function normalizeCheckinCode(input: string) {
+  return input.toUpperCase().replace(/^TQ[-\s]?/, "").replace(/[^0-9A-Z]/g, "");
+}
+
+export const formatCheckinCode = (code: string) => `TQ-${code}`;
+
+export async function rotateCheckinCode(carId: string) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const code = newCode();
+    try {
+      await db.update(cars).set({ checkinCode: code }).where(eq(cars.id, carId));
+      return code;
+    } catch {
+      // unique collision, try again
+    }
+  }
+  throw new AppError("invalid", "Could not generate a code");
+}
+
+/** The owner's current code, created on first use. */
+export async function getCheckinCode(userId: string, carId: string) {
+  const car = await getCar(userId, carId);
+  return car.checkinCode ?? rotateCheckinCode(car.id);
+}
+
+export async function newCheckinCode(userId: string, carId: string) {
+  await getCar(userId, carId);
+  return rotateCheckinCode(carId);
+}
+
+export async function findCarByCheckinCode(code: string) {
+  const normalized = normalizeCheckinCode(code);
+  if (normalized.length !== 6) return null;
+  return (await db.query.cars.findFirst({ where: and(eq(cars.checkinCode, normalized), eq(cars.archived, false)) })) ?? null;
+}

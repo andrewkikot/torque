@@ -56,3 +56,11 @@ export async function logOdometerAction(carId: string, value: number, allowDecre
     return { previous: r.previous, current: r.current };
   });
 }
+
+export async function checkinCodeAction(carId: string, rotate = false) {
+  const user = await requireUser();
+  return run(async () => {
+    const code = rotate ? await cars.newCheckinCode(user.id, carId) : await cars.getCheckinCode(user.id, carId);
+    return { code };
+  });
+}

@@ -55,6 +55,17 @@ export default async function Landing() {
           </div>
         ))}
       </section>
+      <section className="relative mx-auto max-w-6xl px-4 pb-16 sm:px-6">
+        <div className="flex flex-col items-start gap-4 rounded-4xl bg-fg p-8 text-bg sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="font-display text-2xl font-bold">{t("wsTitle")}</h2>
+            <p className="mt-2 max-w-xl text-bg/75">{t("wsSub")}</p>
+          </div>
+          <ButtonLink href="/w/create" className="shrink-0 bg-bg text-fg">
+            {t("wsCta")}
+          </ButtonLink>
+        </div>
+      </section>
       <footer className="relative mx-auto max-w-6xl px-4 pb-10 text-center text-sm text-muted sm:px-6">
         <a href="/terms" className="underline underline-offset-2">
           {tTerms("title")}

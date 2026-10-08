@@ -1,7 +1,9 @@
 import { pollLogin } from "@/lib/services/telegram-login";
+import { safeNext } from "@/lib/safe-next";
 
 export async function GET(req: Request) {
-  const id = new URL(req.url).searchParams.get("id");
+  const url = new URL(req.url);
+  const id = url.searchParams.get("id");
   if (!id || id.length > 64) return Response.json({ status: "expired" });
-  return Response.json(await pollLogin(id, req.headers), { headers: { "cache-control": "no-store" } });
+  return Response.json(await pollLogin(id, req.headers, safeNext(url.searchParams.get("next"))), { headers: { "cache-control": "no-store" } });
 }

@@ -6,7 +6,7 @@ import { listCars, getCar, logOdometer, carLabel } from "@/lib/services/cars";
 import { listHistory } from "@/lib/services/work";
 import { addWork } from "@/lib/services/work";
 import { getUpcoming, addPlan } from "@/lib/services/maintenance";
-import { createVisit, listVisits, visitTotal } from "@/lib/services/visits";
+import { listVisits, visitTotal, vehicleLabel } from "@/lib/services/visits";
 import { AppError } from "@/lib/errors";
 
 const carId = z.string().describe("Car id from listCars or the garage context");
@@ -90,9 +90,9 @@ export function buildTools(userId: string, source: "ai" | "telegram" = "ai") {
         safe(async () =>
           (await listVisits(userId, { activeOnly, carId })).slice(0, 15).map((v) => ({
             id: v.id,
-            car: carLabel(v.car),
+            car: vehicleLabel(v),
             title: v.title,
-            shop: v.shopName,
+            shop: v.workshop?.name ?? v.shopName,
             status: v.status,
             eta: v.eta?.toISOString() ?? null,
             total: visitTotal(v.workItems),
@@ -133,21 +133,6 @@ export function buildTools(userId: string, source: "ai" | "telegram" = "ai") {
         }),
     }),
 
-    createServiceVisit: tool({
-      description: "Create a service visit (car going to a shop) so the user can track it. Requires user approval.",
-      inputSchema: z.object({
-        carId,
-        title: z.string().describe("What the visit is about, e.g. 'Brake noise + annual service'"),
-        shopName: z.string().optional(),
-        plannedAt: z.string().optional().describe("ISO date-time of the appointment"),
-      }),
-      execute: ({ plannedAt, ...input }) =>
-        safe(async () => {
-          const v = await createVisit(userId, { ...input, plannedAt: plannedAt ? new Date(plannedAt) : null });
-          return { ok: true, id: v.id, url: `/visits/${v.id}` };
-        }),
-    }),
-
     addMaintenancePlan: tool({
       description: "Add a recurring maintenance reminder (interval by distance and/or months). Requires user approval.",
       inputSchema: z.object({
@@ -169,6 +154,6 @@ export function buildTools(userId: string, source: "ai" | "telegram" = "ai") {
 
 export type AgentTools = ReturnType<typeof buildTools>;
 
-export const WRITE_TOOLS = ["logOdometer", "addWorkItem", "createServiceVisit", "addMaintenancePlan"] as const;
+export const WRITE_TOOLS = ["logOdometer", "addWorkItem", "addMaintenancePlan"] as const;
 
 export const approvalConfig = Object.fromEntries(WRITE_TOOLS.map((t) => [t, "user-approval" as const]));

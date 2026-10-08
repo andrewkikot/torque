@@ -12,7 +12,7 @@ import { Markdown } from "./markdown";
 import { clearChatAction } from "@/app/actions/settings";
 import { cn } from "@/lib/utils";
 
-const WRITE_TOOLS = new Set(["logOdometer", "addWorkItem", "createServiceVisit", "addMaintenancePlan"]);
+const WRITE_TOOLS = new Set(["logOdometer", "addWorkItem", "addMaintenancePlan"]);
 
 type ToolPart = {
   type: string;

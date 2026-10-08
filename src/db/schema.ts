@@ -175,6 +175,8 @@ export const cars = pgTable(
     accentColor: text("accent_color").notNull().default("#f97316"),
     photoUrl: text("photo_url"),
     currentOdometer: integer("current_odometer").notNull().default(0),
+    // One-time code a workshop scans/types to attach a job to this car. Rotates after each use.
+    checkinCode: text("checkin_code").unique(),
     archived: boolean("archived").notNull().default(false),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -198,6 +200,46 @@ export const odometerReadings = pgTable(
   (t) => [index("odo_car_idx").on(t.carId, t.recordedAt)],
 );
 
+export const workshopRoleEnum = pgEnum("workshop_role", ["owner", "mechanic"]);
+
+export const workshops = pgTable("workshops", {
+  id: id(),
+  name: text("name").notNull(),
+  city: text("city"),
+  address: text("address"),
+  phone: text("phone"),
+  accentColor: text("accent_color").notNull().default("#0ea5e9"),
+  createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+  createdAt: createdAt(),
+});
+
+export const workshopMembers = pgTable(
+  "workshop_members",
+  {
+    workshopId: text("workshop_id")
+      .notNull()
+      .references(() => workshops.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    role: workshopRoleEnum("role").notNull().default("mechanic"),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("workshop_member_idx").on(t.workshopId, t.userId), index("workshop_member_user_idx").on(t.userId)],
+);
+
+export const workshopInvites = pgTable("workshop_invites", {
+  token: text("token").primaryKey(),
+  workshopId: text("workshop_id")
+    .notNull()
+    .references(() => workshops.id, { onDelete: "cascade" }),
+  role: workshopRoleEnum("role").notNull().default("mechanic"),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedBy: text("used_by").references(() => user.id, { onDelete: "set null" }),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  createdAt: createdAt(),
+});
+
 export const visitStatusEnum = pgEnum("visit_status", [
   "planned",
   "dropped_off",
@@ -215,10 +257,18 @@ export const serviceVisits = pgTable(
   "service_visits",
   {
     id: id(),
-    carId: text("car_id")
-      .notNull()
-      .references(() => cars.id, { onDelete: "cascade" }),
+    // Null for walk-in customers until they save the job to a Torque garage.
+    carId: text("car_id").references(() => cars.id, { onDelete: "set null" }),
+    // Null only for legacy owner-created visits.
+    workshopId: text("workshop_id").references(() => workshops.id, { onDelete: "set null" }),
     title: text("title").notNull(),
+    vehicleMake: text("vehicle_make"),
+    vehicleModel: text("vehicle_model"),
+    vehicleYear: integer("vehicle_year"),
+    vehiclePlate: text("vehicle_plate"),
+    vehicleVin: text("vehicle_vin"),
+    customerName: text("customer_name"),
+    customerPhone: text("customer_phone"),
     shopName: text("shop_name"),
     shopContact: text("shop_contact"),
     status: visitStatusEnum("status").notNull().default("planned"),
@@ -232,7 +282,7 @@ export const serviceVisits = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index("visits_car_idx").on(t.carId)],
+  (t) => [index("visits_car_idx").on(t.carId), index("visits_workshop_idx").on(t.workshopId, t.status)],
 );
 
 export const eventKindEnum = pgEnum("event_kind", [
@@ -243,7 +293,7 @@ export const eventKindEnum = pgEnum("event_kind", [
   "approval_request",
   "approval_decision",
 ]);
-export const authorEnum = pgEnum("author", ["owner", "shop", "bot", "ai"]);
+export const authorEnum = pgEnum("author", ["owner", "shop", "bot", "ai", "customer"]);
 
 export const visitEvents = pgTable(
   "visit_events",
@@ -254,6 +304,8 @@ export const visitEvents = pgTable(
       .references(() => serviceVisits.id, { onDelete: "cascade" }),
     kind: eventKindEnum("kind").notNull(),
     author: authorEnum("author").notNull(),
+    // Mechanic's display name for shop events.
+    authorName: text("author_name"),
     status: visitStatusEnum("status"),
     message: text("message"),
     photoUrl: text("photo_url"),
@@ -263,6 +315,20 @@ export const visitEvents = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("events_visit_idx").on(t.visitId, t.createdAt)],
+);
+
+/** Telegram chats following a job without an account (walk-in customers). */
+export const visitSubscribers = pgTable(
+  "visit_subscribers",
+  {
+    visitId: text("visit_id")
+      .notNull()
+      .references(() => serviceVisits.id, { onDelete: "cascade" }),
+    telegramChatId: text("telegram_chat_id").notNull(),
+    locale: localeEnum("locale").notNull().default("en"),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("visit_subscriber_idx").on(t.visitId, t.telegramChatId)],
 );
 
 export const workCategoryEnum = pgEnum("work_category", [
@@ -289,9 +355,8 @@ export const workItems = pgTable(
   "work_items",
   {
     id: id(),
-    carId: text("car_id")
-      .notNull()
-      .references(() => cars.id, { onDelete: "cascade" }),
+    // Null for work on a walk-in job that hasn't been saved to a garage yet.
+    carId: text("car_id").references(() => cars.id, { onDelete: "cascade" }),
     visitId: text("visit_id").references(() => serviceVisits.id, { onDelete: "set null" }),
     // Items proposed by the shop but not yet approved by the owner stay out of the book.
     approved: boolean("approved").notNull().default(true),
@@ -398,8 +463,20 @@ export const carsRelations = relations(cars, ({ many, one }) => ({
   readings: many(odometerReadings),
 }));
 
+export const workshopsRelations = relations(workshops, ({ many }) => ({
+  members: many(workshopMembers),
+  visits: many(serviceVisits),
+}));
+
+export const workshopMembersRelations = relations(workshopMembers, ({ one }) => ({
+  workshop: one(workshops, { fields: [workshopMembers.workshopId], references: [workshops.id] }),
+  user: one(user, { fields: [workshopMembers.userId], references: [user.id] }),
+}));
+
 export const visitsRelations = relations(serviceVisits, ({ one, many }) => ({
   car: one(cars, { fields: [serviceVisits.carId], references: [cars.id] }),
+  workshop: one(workshops, { fields: [serviceVisits.workshopId], references: [workshops.id] }),
+  subscribers: many(visitSubscribers),
   events: many(visitEvents),
   workItems: many(workItems),
 }));
@@ -421,7 +498,13 @@ export const readingsRelations = relations(odometerReadings, ({ one }) => ({
   car: one(cars, { fields: [odometerReadings.carId], references: [cars.id] }),
 }));
 
+export const subscribersRelations = relations(visitSubscribers, ({ one }) => ({
+  visit: one(serviceVisits, { fields: [visitSubscribers.visitId], references: [serviceVisits.id] }),
+}));
+
 export type Car = typeof cars.$inferSelect;
+export type Workshop = typeof workshops.$inferSelect;
+export type WorkshopRole = (typeof workshopRoleEnum.enumValues)[number];
 export type ServiceVisit = typeof serviceVisits.$inferSelect;
 export type VisitEvent = typeof visitEvents.$inferSelect;
 export type WorkItem = typeof workItems.$inferSelect;

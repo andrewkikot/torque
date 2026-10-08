@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { and, eq } from "drizzle-orm";
 import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
-import { Sparkles, Wrench, ChevronRight } from "lucide-react";
+import { Sparkles, ChevronRight } from "lucide-react";
+import { ShowToMechanic } from "@/components/car/show-to-mechanic";
+import { appUrl } from "@/lib/app-url";
 import { db, schema } from "@/db";
 import { loadCar } from "@/lib/page-data";
 import { plansWithDue } from "@/lib/services/maintenance";
@@ -48,7 +50,7 @@ export default async function CarOverview({ params }: PageProps<"/cars/[id]">) {
       <div className="flex flex-col gap-6">
         <div className="grid grid-cols-3 gap-2 lg:hidden">
           <AddWorkButton carId={car.id} currency={settings.currency} units={settings.units} odometer={car.currentOdometer} plans={planOptions} compact />
-          <QuickLink href={`/visits/new?carId=${car.id}`} icon={<Wrench className="size-5" />} label={t("car.startVisit")} />
+          <ShowToMechanic carId={car.id} appUrl={appUrl()} />
           <QuickLink href={`/assistant?carId=${car.id}`} icon={<Sparkles className="size-5" />} label={t("assistant.title")} />
         </div>
         {active.map((v) => (
@@ -59,7 +61,7 @@ export default async function CarOverview({ params }: PageProps<"/cars/[id]">) {
                   <div className="text-xs font-bold uppercase tracking-wider text-accent">{t("garage.activeVisits")}</div>
                   <div className="mt-0.5 line-clamp-2 text-lg font-bold leading-snug">{v.title}</div>
                   <div className="text-sm text-muted">
-                    {v.shopName && <>{v.shopName} · </>}
+                    {(v.workshop?.name ?? v.shopName) && <>{v.workshop?.name ?? v.shopName} · </>}
                     <span className="tabular font-semibold text-fg">{formatMoney(visitTotal(v.workItems), v.currency, locale)}</span>
                   </div>
                 </div>
@@ -109,9 +111,7 @@ export default async function CarOverview({ params }: PageProps<"/cars/[id]">) {
       <aside className="flex flex-col gap-4">
         <Card className="hidden flex-col gap-2 lg:flex">
           <AddWorkButton carId={car.id} currency={settings.currency} units={settings.units} odometer={car.currentOdometer} plans={planOptions} />
-          <ButtonLink href={`/visits/new?carId=${car.id}`} variant="outline">
-            <Wrench /> {t("car.startVisit")}
-          </ButtonLink>
+          <ShowToMechanic carId={car.id} appUrl={appUrl()} variant="button" />
           <ButtonLink href={`/assistant?carId=${car.id}`} variant="secondary">
             <Sparkles /> {t("assistant.title")}
           </ButtonLink>

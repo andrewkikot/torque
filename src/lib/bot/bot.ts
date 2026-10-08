@@ -6,7 +6,7 @@ import { db, schema } from "@/db";
 import { translator, type T } from "@/i18n/server-translate";
 import { listCars, logOdometer, carLabel } from "@/lib/services/cars";
 import { plansWithDue } from "@/lib/services/maintenance";
-import { listVisits, decideApproval, visitTotal } from "@/lib/services/visits";
+import { listVisits, decideApproval, visitTotal, detachVisit, subscribeTelegram, vehicleLabel } from "@/lib/services/visits";
 import { getUserModel } from "@/lib/services/ai-settings";
 import { AppError } from "@/lib/errors";
 import { formatMoney, formatNumber } from "@/lib/format";
@@ -80,8 +80,6 @@ function describeAction(t: T, a: PendingAction) {
       return t("assistant.tools.logOdometer", { value: String(i.value) });
     case "addWorkItem":
       return t("assistant.tools.addWorkItem", { name: String(i.name) }) + (i.cost ? ` · ${i.cost}` : "");
-    case "createServiceVisit":
-      return t("assistant.tools.createServiceVisit", { title: String(i.title) });
     case "addMaintenancePlan":
       return t("assistant.tools.addMaintenancePlan", { name: String(i.name) });
     default:
@@ -129,6 +127,19 @@ async function askLogin(ctx: Context, id: string) {
   });
 }
 
+/** A walk-in customer follows a job from the tracking link — no account needed. */
+async function followJob(ctx: Context, token: string) {
+  const linked = await linkedUser(ctx);
+  const locale = linked?.settings.locale ?? localeFromTelegram(ctx.from?.language_code);
+  const t = translator(locale);
+  const visit = await subscribeTelegram(token, String(ctx.chat!.id), locale).catch(() => null);
+  if (!visit) return ctx.reply(t("bot.trackInvalid"));
+  await ctx.reply(
+    t("bot.trackFollowing", { vehicle: vehicleLabel(visit), status: t(`status.${visit.status}`), workshop: visit.workshop?.name ?? "" }),
+    { reply_markup: new InlineKeyboard().url(t("notify.open"), `${appUrl()}/v/${token}`) },
+  );
+}
+
 export function createBot() {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) throw new Error("TELEGRAM_BOT_TOKEN is not set");
@@ -137,6 +148,7 @@ export function createBot() {
   bot.command("start", async (ctx) => {
     const code = ctx.match?.trim();
     if (code?.startsWith("login_")) return askLogin(ctx, code.slice(6));
+    if (code?.startsWith("trk_")) return followJob(ctx, code.slice(4));
     if (!code) {
       const u = await linkedUser(ctx);
       return ctx.reply(u ? u.t("bot.help") : guestT(ctx)("bot.welcome"));
@@ -217,8 +229,8 @@ export function createBot() {
     if (!visits.length) return ctx.reply(u.t("bot.visitsNone"));
     for (const v of visits.slice(0, 5)) {
       const text = [
-        `${STATUS_EMOJI[v.status]} <b>${escapeHtml(carLabel(v.car))}</b> · ${escapeHtml(v.title)}`,
-        `${u.t(`status.${v.status}`)}${v.shopName ? ` · ${escapeHtml(v.shopName)}` : ""}`,
+        `${STATUS_EMOJI[v.status]} <b>${escapeHtml(vehicleLabel(v))}</b> · ${escapeHtml(v.title)}`,
+        `${u.t(`status.${v.status}`)}${v.workshop?.name || v.shopName ? ` · ${escapeHtml(v.workshop?.name ?? v.shopName ?? "")}` : ""}`,
         `${u.t("common.total")}: ${formatMoney(visitTotal(v.workItems), v.currency, u.settings.locale)}`,
       ].join("\n");
       await ctx.reply(text, {
@@ -269,14 +281,32 @@ export function createBot() {
   });
 
   bot.callbackQuery(/^ap:([\w-]+):([01])$/, async (ctx) => {
-    const u = await requireLinked(ctx);
-    if (!u) return ctx.answerCallbackQuery();
     const [, eventId, decision] = ctx.match;
-    const r = await decideApproval(u.settings.userId, eventId, decision === "1", "bot");
-    const msg = r.alreadyDecided ? u.t("bot.alreadyDecided") : r.approved ? u.t("bot.approvedMsg") : u.t("bot.declinedMsg");
+    const approved = decision === "1";
+    const linked = await linkedUser(ctx);
+    const t = linked?.t ?? guestT(ctx);
+    // The car owner decides from their account; a walk-in customer from the chat that follows the job.
+    let r: { alreadyDecided: boolean; approved: boolean } | null = null;
+    if (linked && linked.settings.termsVersion === TERMS_VERSION) {
+      r = await decideApproval({ kind: "owner", userId: linked.settings.userId, via: "bot" }, eventId, approved).catch(() => null);
+    }
+    r ??= await decideApproval({ kind: "subscriber", chatId: String(ctx.chat!.id) }, eventId, approved).catch(() => null);
+    if (!r) return ctx.answerCallbackQuery({ text: t("bot.error") });
+    const msg = r.alreadyDecided ? t("bot.alreadyDecided") : r.approved ? t("bot.approvedMsg") : t("bot.declinedMsg");
     await ctx.answerCallbackQuery({ text: msg });
     await ctx.editMessageReplyMarkup().catch(() => {});
     await ctx.reply(msg);
+  });
+
+  // "Not my car" from the check-in notification.
+  bot.callbackQuery(/^nm:([\w-]+)$/, async (ctx) => {
+    const u = await requireLinked(ctx);
+    if (!u) return ctx.answerCallbackQuery();
+    const ok = await detachVisit(u.settings.userId, ctx.match[1]).then(() => true).catch(() => false);
+    const text = ok ? u.t("bot.detached") : u.t("bot.error");
+    await ctx.answerCallbackQuery({ text });
+    await ctx.editMessageReplyMarkup().catch(() => {});
+    await ctx.reply(text);
   });
 
   bot.callbackQuery(/^lang:(en|uk)$/, async (ctx) => {

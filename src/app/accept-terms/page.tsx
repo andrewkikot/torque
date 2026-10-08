@@ -5,13 +5,15 @@ import { TERMS_VERSION } from "@/lib/terms";
 import { Logo } from "@/components/logo";
 import { LocaleSwitch } from "@/components/locale-switch";
 import { AcceptTermsForm } from "./accept-form";
+import { safeNext } from "@/lib/safe-next";
 
 export const metadata = { title: "Terms of Use" };
 
-export default async function AcceptTermsPage() {
+export default async function AcceptTermsPage({ searchParams }: PageProps<"/accept-terms">) {
+  const next = safeNext((await searchParams).next);
   const user = await requireUser();
   const settings = await getSettings(user.id);
-  if (settings.termsVersion === TERMS_VERSION) redirect("/garage");
+  if (settings.termsVersion === TERMS_VERSION) redirect(next);
   const t = await getTranslations("terms");
   return (
     <div className="relative min-h-dvh overflow-hidden px-4 pb-10 pt-[max(1.5rem,env(safe-area-inset-top))]">
@@ -28,7 +30,7 @@ export default async function AcceptTermsPage() {
           <h1 className="font-display text-2xl font-bold tracking-tight">{t("acceptTitle")}</h1>
           <p className="mt-1 text-muted">{t("acceptSub")}</p>
         </div>
-        <AcceptTermsForm version={TERMS_VERSION} />
+        <AcceptTermsForm version={TERMS_VERSION} next={next} />
       </div>
     </div>
   );

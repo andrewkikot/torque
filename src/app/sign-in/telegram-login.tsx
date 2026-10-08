@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 type State = { kind: "idle" } | { kind: "waiting"; id: string; botUrl: string } | { kind: "error"; message: string };
 
 /** "Sign in with Telegram": open the bot, confirm there, and this tab signs in by itself. */
-export function TelegramLogin() {
+export function TelegramLogin({ next }: { next: string }) {
   const t = useTranslations("auth");
   const [state, setState] = useState<State>({ kind: "idle" });
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -28,7 +28,7 @@ export function TelegramLogin() {
         clearInterval(timer.current!);
         return setState({ kind: "error", message: t("telegramExpired") });
       }
-      const r = await fetch(`/api/telegram-login/poll?id=${encodeURIComponent(data.id)}`, { cache: "no-store" }).then((x) => x.json());
+      const r = await fetch(`/api/telegram-login/poll?id=${encodeURIComponent(data.id)}&next=${encodeURIComponent(next)}`, { cache: "no-store" }).then((x) => x.json());
       if (r.status === "approved") {
         clearInterval(timer.current!);
         window.location.href = r.url;

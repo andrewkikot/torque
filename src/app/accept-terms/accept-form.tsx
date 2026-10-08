@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 const CHECKS = ["check1", "check2", "check3"] as const;
 
 /** Every statement must be ticked explicitly; nothing is pre-checked. */
-export function AcceptTermsForm({ version }: { version: string }) {
+export function AcceptTermsForm({ version, next }: { version: string; next: string }) {
   const t = useTranslations("terms");
   const router = useRouter();
   const [checked, setChecked] = useState<Record<string, boolean>>({});
@@ -67,7 +67,7 @@ export function AcceptTermsForm({ version }: { version: string }) {
             setBusy(false);
             return toast.error(r.error);
           }
-          router.replace("/garage");
+          router.replace(next);
           router.refresh();
         }}
       >

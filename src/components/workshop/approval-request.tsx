@@ -5,57 +5,13 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Hand, Plus, X } from "lucide-react";
-import { StatusControls } from "@/components/visit/status-controls";
-import { Composer } from "@/components/visit/composer";
-import { WorkPanel } from "@/components/visit/work-panel";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Sheet } from "@/components/ui/sheet";
 import { Field, Input, Textarea } from "@/components/ui/field";
-import { shopStatusAction, shopNoteAction, shopWorkAction, shopApprovalAction } from "@/app/actions/shop";
-import { SHOP_STATUSES, type VisitStatusValue } from "@/lib/domain/visit-status";
-import type { VisitWork } from "@/components/visit/types";
+import { jobApprovalAction } from "@/app/actions/workshop";
 
-const ok = (r: { ok: boolean; error?: string }) => (r.ok ? ({ ok: true } as const) : ({ ok: false, error: r.error ?? "Error" } as const));
-
-export function ShopControls({ token, status, items, currency }: { token: string; status: VisitStatusValue; items: VisitWork[]; currency: string }) {
-  const t = useTranslations();
-  return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-      <div className="flex flex-col gap-4">
-        <Card>
-          <h3 className="mb-3 font-display font-semibold">{t("shop.updateStatus")}</h3>
-          <StatusControls
-            status={status}
-            allowed={SHOP_STATUSES}
-            successMessage={t("shop.statusUpdated")}
-            onChange={async (to, msg) => ok(await shopStatusAction(token, to, msg))}
-          />
-        </Card>
-        <Composer
-          shareToken={token}
-          onPost={async (m, p) => {
-            const r = ok(await shopNoteAction(token, m, p));
-            if (r.ok) toast.success(t("shop.noteSent"));
-            return r;
-          }}
-        />
-        <ApprovalRequest token={token} currency={currency} />
-      </div>
-      <WorkPanel
-        items={items}
-        currency={currency}
-        units="km"
-        closed={false}
-        shareToken={token}
-        addLabel={t("shop.addWork")}
-        onAdd={async (p) => ok(await shopWorkAction(token, p))}
-      />
-    </div>
-  );
-}
-
-function ApprovalRequest({ token, currency }: { token: string; currency: string }) {
+/** Workshop asks the customer to approve extra work (items + reason). */
+export function ApprovalRequest({ visitId, currency }: { visitId: string; currency: string }) {
   const t = useTranslations();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -66,24 +22,20 @@ function ApprovalRequest({ token, currency }: { token: string; currency: string 
 
   return (
     <>
-      <Button variant="outline" onClick={() => setOpen(true)} className="self-start">
+      <Button variant="outline" onClick={() => setOpen(true)} className="w-full sm:w-auto">
         <Hand /> {t("shop.requestApproval")}
       </Button>
       <Sheet open={open} onClose={() => setOpen(false)} title={t("shop.requestApproval")}>
         <div className="flex flex-col gap-4">
           <Field label={t("shop.approvalMessage")}>
-            <Textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder={t("shop.approvalPlaceholder")} rows={3} />
+            <Textarea id="approval-message" value={message} onChange={(e) => setMessage(e.target.value)} placeholder={t("shop.approvalPlaceholder")} rows={3} />
           </Field>
           <div>
             <span className="mb-1.5 block text-sm font-semibold">{t("shop.items")}</span>
             <div className="flex flex-col gap-2">
               {rows.map((r, i) => (
-                <div key={i} className="grid grid-cols-[minmax(0,1fr)_110px_auto] gap-2">
-                  <Input
-                    value={r.name}
-                    placeholder={t("work.namePlaceholder")}
-                    onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))}
-                  />
+                <div key={i} className="grid grid-cols-[1fr_110px_auto] gap-2">
+                  <Input value={r.name} placeholder={t("work.namePlaceholder")} onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} />
                   <Input
                     inputMode="decimal"
                     value={r.cost}
@@ -106,8 +58,8 @@ function ApprovalRequest({ token, currency }: { token: string; currency: string 
             disabled={!valid}
             onClick={async () => {
               setBusy(true);
-              const r = await shopApprovalAction(
-                token,
+              const r = await jobApprovalAction(
+                visitId,
                 message,
                 rows.filter((x) => x.name.trim()).map((x) => ({ name: x.name, cost: Number(x.cost.replace(",", ".")) || 0, type: "part" })),
               );

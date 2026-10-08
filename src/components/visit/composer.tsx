@@ -12,9 +12,13 @@ import { PhotoButton } from "@/components/photo-upload";
 export function Composer({
   onPost,
   shareToken,
+  allowPhoto = true,
+  placeholder,
 }: {
   onPost: (message: string, photoUrl: string | null) => Promise<{ ok: true } | { ok: false; error: string }>;
   shareToken?: string;
+  allowPhoto?: boolean;
+  placeholder?: string;
 }) {
   const t = useTranslations("visit");
   const router = useRouter();
@@ -45,14 +49,14 @@ export function Composer({
         </div>
       )}
       <div className="flex items-end gap-2">
-        <PhotoButton variant="icon" folder="visits" shareToken={shareToken} onUploaded={setPhoto} label={t("addPhoto")} />
+        {allowPhoto && <PhotoButton variant="icon" folder="visits" shareToken={shareToken} onUploaded={setPhoto} label={t("addPhoto")} />}
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) post();
           }}
-          placeholder={t("notePlaceholder")}
+          placeholder={placeholder ?? t("notePlaceholder")}
           rows={1}
           className="max-h-40 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-base outline-none sm:text-[15px] placeholder:text-subtle field-sizing-content"
         />

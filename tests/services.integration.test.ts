@@ -15,6 +15,7 @@ describe.skipIf(!enabled)("services (local DB)", async () => {
   const visits = await import("@/lib/services/visits");
   const maintenance = await import("@/lib/services/maintenance");
   const ai = await import("@/lib/services/ai-settings");
+  const workshops = await import("@/lib/services/workshops");
 
   const A = `test-a-${Date.now()}`;
   const B = `test-b-${Date.now()}`;
@@ -26,6 +27,7 @@ describe.skipIf(!enabled)("services (local DB)", async () => {
     ]);
   });
   afterAll(async () => {
+    await db.delete(schema.workshops).where(inArray(schema.workshops.createdBy, [A, B]));
     await db.delete(schema.user).where(inArray(schema.user.id, [A, B]));
   });
 
@@ -49,30 +51,90 @@ describe.skipIf(!enabled)("services (local DB)", async () => {
     await expect(cars.logOdometer(A, car.id, 90000, "telegram")).rejects.toThrow(/lower/);
   });
 
-  it("runs a full shop visit with approval and completion", async () => {
+  it("workshop runs a code check-in; owner follows, approves, gets the service book", async () => {
     const car = await cars.createCar(A, { make: "Toyota", model: "Corolla", currentOdometer: 50000, fuel: "hybrid" }, { withPresets: false });
-    const v = await visits.createVisit(A, { carId: car.id, title: "Service", status: "dropped_off" });
-    const shop = { kind: "shop" as const, token: v.shareToken };
+    // B runs a workshop; A is just a car owner.
+    const shop = await workshops.createWorkshop(B, { name: "AutoMaster", phone: "+380441234567" });
+    const staff = { kind: "staff" as const, userId: B };
+    const owner = { kind: "owner" as const, userId: A };
 
-    await expect(visits.changeStatus({ kind: "shop", token: "wrong" }, v.id, "diagnosing")).rejects.toThrow();
-    await expect(visits.changeStatus(shop, v.id, "completed")).rejects.toThrow(/can't/i);
-    await visits.changeStatus(shop, v.id, "diagnosing");
-    await visits.addVisitWork(shop, v.id, { name: "Oil", category: "oil", cost: 1500 });
-    const req = await visits.requestApproval(shop, v.id, { message: "Pads worn", items: [{ name: "Brake pads", category: "brakes", cost: 2400 }] });
+    const code = await cars.getCheckinCode(A, car.id);
+    await expect(cars.getCheckinCode(B, car.id)).rejects.toThrow(); // only the owner sees the code
+    await expect(visits.checkInByCode(A, shop.id, code, { title: "x" })).rejects.toThrow(); // A is not a member
+    const v = await visits.checkInByCode(B, shop.id, `tq-${code.toLowerCase()}`, { title: "Annual service" });
+    expect(v.carId).toBe(car.id);
+    // Codes are single-use.
+    await expect(visits.checkInByCode(B, shop.id, code, { title: "again" })).rejects.toThrow(/not valid/);
+    expect((await db.query.cars.findFirst({ where: eq(schema.cars.id, car.id) }))!.checkinCode).not.toBe(code);
 
-    await expect(visits.decideApproval(B, req.id, true)).rejects.toThrow();
-    await visits.decideApproval(A, req.id, true);
-    await visits.changeStatus({ kind: "owner", userId: A }, v.id, "completed");
+    // Owners can't run the job; staff can't approve on the customer's behalf.
+    await expect(visits.changeStatus(owner, v.id, "in_progress")).rejects.toThrow(/workshop/i);
+    await expect(visits.addVisitWork(owner, v.id, { name: "x" })).rejects.toThrow();
+    await visits.changeStatus(staff, v.id, "diagnosing");
+    await visits.addVisitWork(staff, v.id, { name: "Oil", category: "oil", cost: 1500 });
+    const req = await visits.requestApproval(staff, v.id, { message: "Pads worn", items: [{ name: "Brake pads", category: "brakes", cost: 2400 }] });
+    await expect(visits.decideApproval(staff, req.id, true)).rejects.toThrow();
+    // A stranger with the wrong token can't approve.
+    await expect(visits.decideApproval({ kind: "customer", token: "nope" }, req.id, true)).rejects.toThrow();
+    await visits.decideApproval(owner, req.id, true);
+    await visits.addNote(owner, v.id, "Thanks!");
+    await expect(visits.addNote(owner, v.id, "", "https://x/y.jpg")).rejects.toThrow(); // only shops post photos
+    await visits.changeStatus(staff, v.id, "completed");
 
     const full = await visits.getVisit(A, v.id);
     expect(full.status).toBe("completed");
     expect(visits.visitTotal(full.workItems)).toBe(3900);
-    const history = await work.listHistory(A, car.id);
-    expect(history.map((h) => h.name).sort()).toEqual(["Brake pads", "Oil"]);
+    expect((await work.listHistory(A, car.id)).map((h) => h.name).sort()).toEqual(["Brake pads", "Oil"]);
+    // Another user can't open the owner's or the workshop's view.
+    await expect(visits.getVisit(B, v.id)).rejects.toThrow();
+    await expect(visits.getJob(A, v.id)).rejects.toThrow();
+  });
 
-    // Shop link is dead once sharing is disabled.
-    await visits.setSharing(A, v.id, { enabled: false });
-    expect(await visits.getVisitByToken(v.shareToken)).toBeNull();
+  it("walk-in: tracking link, Telegram subscriber approval, then save to garage", async () => {
+    const shop = await workshops.createWorkshop(B, { name: "Garage 77" });
+    const staff = { kind: "staff" as const, userId: B };
+    const v = await visits.createWalkIn(B, shop.id, { vehicleMake: "Mazda", vehicleModel: "3", vehiclePlate: "aa 1111 bb", customerName: "Olena", title: "Brakes" });
+    expect(v.carId).toBeNull();
+    expect(v.vehiclePlate).toBe("AA 1111 BB");
+    const pub = await visits.getVisitByToken(v.shareToken);
+    expect(pub?.vehicleVin).toBeNull();
+
+    await visits.subscribeTelegram(v.shareToken, "chat-777", "uk");
+    await visits.addVisitWork(staff, v.id, { name: "Pads", category: "brakes", cost: 2000 });
+    const req = await visits.requestApproval(staff, v.id, { message: "Discs too", items: [{ name: "Discs", category: "brakes", cost: 3000 }] });
+    await expect(visits.decideApproval({ kind: "subscriber", chatId: "other-chat" }, req.id, true)).rejects.toThrow();
+    await visits.decideApproval({ kind: "subscriber", chatId: "chat-777" }, req.id, true);
+    await visits.changeStatus(staff, v.id, "completed");
+
+    // Customer A saves it to their garage later: a new car is created and the work lands in its book.
+    const claimed = await visits.claimVisit(v.shareToken, A);
+    const newCar = await cars.getCar(A, claimed.carId);
+    expect(newCar.make).toBe("Mazda");
+    expect(newCar.plate).toBe("AA 1111 BB");
+    expect((await work.listHistory(A, newCar.id)).map((h) => h.name).sort()).toEqual(["Discs", "Pads"]);
+    await expect(visits.claimVisit(v.shareToken, A)).rejects.toThrow(/already/);
+  });
+
+  it("not my car: owner detaches a wrong check-in", async () => {
+    const car = await cars.createCar(A, { make: "Skoda", model: "Fabia", fuel: "petrol" }, { withPresets: false });
+    const shop = await workshops.createWorkshop(B, { name: "Oops Garage" });
+    const v = await visits.checkInByCode(B, shop.id, await cars.getCheckinCode(A, car.id), { title: "Wrong car" });
+    await visits.detachVisit(A, v.id);
+    expect((await visits.listVisits(A)).some((x) => x.id === v.id)).toBe(false);
+    // The workshop keeps its job.
+    expect((await visits.getJob(B, v.id)).carId).toBeNull();
+  });
+
+  it("team invites: join, roles, last owner protected", async () => {
+    const shop = await workshops.createWorkshop(B, { name: "Team Garage" });
+    await expect(workshops.createInvite(A, shop.id)).rejects.toThrow(); // not a member
+    const invite = await workshops.createInvite(B, shop.id);
+    await workshops.acceptInvite(invite.token, A);
+    expect((await workshops.membership(A, shop.id))?.role).toBe("mechanic");
+    await expect(workshops.createInvite(A, shop.id)).rejects.toThrow(/owner/); // mechanics can't invite
+    await expect(workshops.removeMember(B, shop.id, B)).rejects.toThrow(/owner/);
+    await workshops.removeMember(A, shop.id, A); // mechanics can leave
+    expect(await workshops.membership(A, shop.id)).toBeNull();
   });
 
   it("stores AI keys encrypted and never exposes them publicly", async () => {

@@ -8,8 +8,9 @@ import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { Card } from "@/components/ui/card";
+import { TelegramLogin } from "./telegram-login";
 
-export function SignInForm({ devMode }: { devMode: boolean }) {
+export function SignInForm({ devMode, telegram, email: emailMode }: { devMode: boolean; telegram: boolean; email: "resend" | "telegram-only" | "dev" }) {
   const t = useTranslations("auth");
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
@@ -22,7 +23,7 @@ export function SignInForm({ devMode }: { devMode: boolean }) {
     setError(null);
     const { error } = await authClient.signIn.magicLink({ email, callbackURL: "/garage", newUserCallbackURL: "/garage?welcome=1" });
     setBusy(false);
-    if (error) setError(t("error"));
+    if (error) setError(error.message || t("error"));
     else setSent(true);
   }
 
@@ -47,10 +48,20 @@ export function SignInForm({ devMode }: { devMode: boolean }) {
               <h1 className="font-display text-xl font-semibold">{t("title")}</h1>
               <p className="mt-1 text-sm text-muted">{t("subtitle")}</p>
             </div>
+            {telegram && (
+              <>
+                <TelegramLogin />
+                <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-wider text-subtle">
+                  <span className="h-px flex-1 bg-border" />
+                  {t("or")}
+                  <span className="h-px flex-1 bg-border" />
+                </div>
+              </>
+            )}
             <Input
               type="email"
               required
-              autoFocus
+              autoFocus={!telegram}
               autoComplete="email"
               placeholder={t("emailPlaceholder")}
               value={email}
@@ -58,7 +69,8 @@ export function SignInForm({ devMode }: { devMode: boolean }) {
               aria-label={t("email")}
             />
             {error && <p className="text-sm text-danger">{error}</p>}
-            <Button type="submit" size="lg" loading={busy}>
+            {emailMode === "telegram-only" && <p className="-mt-2 text-xs text-muted">{t("emailViaTelegram")}</p>}
+            <Button type="submit" size="lg" variant={telegram ? "outline" : "primary"} loading={busy}>
               {busy ? t("sending") : t("send")}
             </Button>
           </motion.form>

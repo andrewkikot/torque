@@ -11,6 +11,8 @@ import * as ai from "@/lib/services/ai-settings";
 import { clearConversation } from "@/lib/ai/history";
 import { LOCALE_COOKIE } from "@/i18n/config";
 import { run } from "./_result";
+import { isTelegramEmail } from "@/lib/services/telegram-login";
+import { AppError } from "@/lib/errors";
 
 const prefsInput = z
   .object({
@@ -75,6 +77,8 @@ export async function telegramStatusAction() {
 export async function disconnectTelegramAction() {
   const user = await requireUser();
   return run(async () => {
+    // Accounts created via Telegram have no real email: unlinking would lock the user out.
+    if (isTelegramEmail(user.email)) throw new AppError("forbidden", "This account signs in with Telegram, so it can't be disconnected.");
     await db
       .update(schema.userSettings)
       .set({ telegramChatId: null, telegramUsername: null })

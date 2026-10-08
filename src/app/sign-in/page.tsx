@@ -17,7 +17,11 @@ export default async function SignInPage() {
         <Link href="/" className="mb-8 flex justify-center">
           <Logo />
         </Link>
-        <SignInForm devMode={!process.env.RESEND_API_KEY} />
+        <SignInForm
+          devMode={!process.env.RESEND_API_KEY && process.env.NODE_ENV !== "production"}
+          telegram={!!process.env.TELEGRAM_BOT_TOKEN && !!process.env.TELEGRAM_BOT_USERNAME}
+          email={process.env.RESEND_API_KEY ? "resend" : process.env.NODE_ENV === "production" ? "telegram-only" : "dev"}
+        />
       </div>
     </div>
   );

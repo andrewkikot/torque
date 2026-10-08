@@ -5,6 +5,7 @@ import { magicLink } from "better-auth/plugins/magic-link";
 import { nextCookies } from "better-auth/next-js";
 import { db, schema } from "@/db";
 import { sendMagicLinkEmail } from "@/lib/email";
+import { magicCapture } from "@/lib/magic-capture";
 
 export const auth = betterAuth({
   baseURL: process.env.NEXT_PUBLIC_APP_URL,
@@ -36,6 +37,12 @@ export const auth = betterAuth({
     magicLink({
       expiresIn: 60 * 15,
       sendMagicLink: async ({ email, url }) => {
+        // "Sign in with Telegram": hand the link to the waiting browser instead of sending it.
+        const capture = magicCapture.getStore();
+        if (capture) {
+          capture.url = url;
+          return;
+        }
         await sendMagicLinkEmail(email, url);
       },
     }),

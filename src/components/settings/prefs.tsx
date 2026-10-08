@@ -23,7 +23,18 @@ type Prefs = {
   notifyMileageNudge: boolean;
 };
 
-export function PreferencesCard({ initial, name, email }: { initial: Prefs; name: string; email: string }) {
+export function PreferencesCard({
+  initial,
+  name,
+  email,
+  telegramUsername,
+}: {
+  initial: Prefs;
+  name: string;
+  /** null for accounts created via Telegram (placeholder email). */
+  email: string | null;
+  telegramUsername: string | null;
+}) {
   const t = useTranslations("settings");
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -115,7 +126,9 @@ export function PreferencesCard({ initial, name, email }: { initial: Prefs; name
       <Card className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-display text-lg font-semibold">{t("account")}</h2>
-          <p className="text-sm text-muted">{t("signedInAs", { email })}</p>
+          <p className="text-sm text-muted">
+            {email ? t("signedInAs", { email }) : t("signedInTelegram", { username: telegramUsername ?? "" })}
+          </p>
         </div>
         <SignOut />
       </Card>

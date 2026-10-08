@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/ui/card";
 import { PreferencesCard } from "@/components/settings/prefs";
 import { TelegramCard } from "@/components/settings/telegram";
 import { AiCard } from "@/components/settings/ai";
+import { isTelegramEmail } from "@/lib/services/telegram-login";
 
 export const metadata = { title: "Settings" };
 
@@ -25,7 +26,8 @@ export default async function SettingsPage() {
         />
         <PreferencesCard
           name={user.name}
-          email={user.email}
+          email={isTelegramEmail(user.email) ? null : user.email}
+          telegramUsername={settings.telegramUsername}
           initial={{
             locale: settings.locale,
             units: settings.units,

@@ -14,6 +14,7 @@ import { escapeHtml } from "@/lib/telegram-api";
 import { STATUS_EMOJI } from "@/lib/domain/visit-status";
 import { parseMileage, localeFromTelegram } from "./parse";
 import { chat, resolvePending, type BotAiResult, type PendingAction } from "./ai";
+import { getPendingLogin, userForTelegram, decideLogin } from "@/lib/services/telegram-login";
 import type { UserSettings } from "@/db/schema";
 
 const appUrl = () => process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -109,6 +110,17 @@ function inBackground(ctx: Context, work: () => Promise<unknown>) {
   });
 }
 
+async function askLogin(ctx: Context, id: string) {
+  const t = guestT(ctx);
+  const login = await getPendingLogin(id);
+  if (!login) return ctx.reply(t("bot.loginExpired"));
+  const linked = await linkedUser(ctx);
+  const tt = linked?.t ?? t;
+  await ctx.reply(tt("bot.loginPrompt", { device: login.device ?? "?" }), {
+    reply_markup: new InlineKeyboard().text(tt("bot.loginConfirm"), `tl:${id}:1`).text(tt("bot.no"), `tl:${id}:0`),
+  });
+}
+
 export function createBot() {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) throw new Error("TELEGRAM_BOT_TOKEN is not set");
@@ -116,6 +128,7 @@ export function createBot() {
 
   bot.command("start", async (ctx) => {
     const code = ctx.match?.trim();
+    if (code?.startsWith("login_")) return askLogin(ctx, code.slice(6));
     if (!code) {
       const u = await linkedUser(ctx);
       return ctx.reply(u ? u.t("bot.help") : guestT(ctx)("bot.welcome"));
@@ -221,6 +234,21 @@ export function createBot() {
     const text = ctx.match?.trim();
     if (!text) return ctx.reply(u.t("bot.help"));
     inBackground(ctx, async () => sendAiResult(ctx, u, await chat(u.settings.userId, u.settings, text)));
+  });
+
+  // "Sign in with Telegram" confirmation.
+  bot.callbackQuery(/^tl:([\w-]+):([01])$/, async (ctx) => {
+    const [, id, decision] = ctx.match;
+    const t = guestT(ctx);
+    const approve = decision === "1";
+    // Only approving creates/links an account; declining just closes the request.
+    const u = approve && ctx.from && ctx.chat ? await userForTelegram(ctx.from, String(ctx.chat.id)) : null;
+    const ok = await decideLogin(id, u?.userId ?? null, approve);
+    const s = u && (await db.query.userSettings.findFirst({ where: eq(schema.userSettings.userId, u.userId) }));
+    const tt = s ? translator(s.locale) : t;
+    const text = !ok ? tt("bot.loginExpired") : decision === "1" ? tt("bot.loginApproved") : tt("bot.loginDeclined");
+    await ctx.answerCallbackQuery({ text });
+    await ctx.editMessageText(text).catch(() => {});
   });
 
   bot.callbackQuery(/^(km|kf):([\w-]+):(\d+)$/, async (ctx) => {

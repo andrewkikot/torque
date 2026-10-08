@@ -57,7 +57,8 @@ npm run dev
 
 1. **Neon**: create a project and copy the connection string into `DATABASE_URL`. Run `DATABASE_URL=... npm run db:migrate` once from your machine.
 2. **Telegram**: talk to [@BotFather](https://t.me/BotFather), run `/newbot`, then copy the token into `TELEGRAM_BOT_TOKEN` and the bot's username (without `@`) into `TELEGRAM_BOT_USERNAME`.
-3. **Resend**: create an API key and put it in `RESEND_API_KEY`. Without a verified domain you can only send to your own address. Verify a domain to send to anyone, and set `EMAIL_FROM`.
+3. **Resend (optional)**: create an API key and put it in `RESEND_API_KEY`. Without a verified domain you can only send to your own address. Verify a domain to send to anyone, and set `EMAIL_FROM`.
+   - Without Resend, people use **Sign in with Telegram**. The bot asks them to confirm, the browser that started the sign-in is logged in, and a new account is created on first use. Email sign-in still works for accounts that have Telegram linked: the link is delivered in Telegram.
 4. **Vercel**: push to GitHub and import the repo (or run `npx vercel`).
    - Under **Storage**, create a **Blob** store and connect it to the project. This adds `BLOB_READ_WRITE_TOKEN`.
    - Add the rest of `.env.example` under **Settings → Environment Variables**. Set `NEXT_PUBLIC_APP_URL` to your production URL.

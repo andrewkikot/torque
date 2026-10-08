@@ -371,6 +371,20 @@ export const remindersLog = pgTable(
   (t) => [uniqueIndex("reminders_key_idx").on(t.userId, t.key)],
 );
 
+export const telegramLoginStatusEnum = pgEnum("telegram_login_status", ["pending", "approved", "consumed", "declined"]);
+
+/** "Sign in with Telegram": a browser waits on this row while the bot asks the user to confirm. */
+export const telegramLogins = pgTable("telegram_logins", {
+  // Secret random id: only the browser that started the login knows it.
+  id: text("id").primaryKey(),
+  status: telegramLoginStatusEnum("status").notNull().default("pending"),
+  userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
+  // Device description shown in the bot's confirmation prompt.
+  device: text("device"),
+  createdAt: createdAt(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+});
+
 /* ───────────────────────── Relations ───────────────────────── */
 
 export const carsRelations = relations(cars, ({ many, one }) => ({

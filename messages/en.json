@@ -62,7 +62,15 @@
     "checkEmailSub": "We sent a sign-in link to {email}. It expires in 15 minutes.",
     "devHint": "Dev mode: the link is printed in the server console.",
     "useAnother": "Use another email",
-    "error": "Couldn't send the link. Try again in a minute."
+    "error": "Couldn't send the link. Try again in a minute.",
+    "telegram": "Sign in with Telegram",
+    "telegramWaiting": "Confirm the sign-in in Telegram…",
+    "telegramOpen": "Open Telegram again",
+    "telegramExpired": "The request expired. Try again.",
+    "telegramDeclined": "Sign-in was declined in Telegram.",
+    "telegramHint": "No email needed — the bot confirms it's you.",
+    "or": "or",
+    "emailViaTelegram": "If your account is linked to Telegram, the link arrives there."
   },
   "garage": {
     "title": "My garage",
@@ -368,7 +376,8 @@
     "notifyMaintenance": "Maintenance due reminders",
     "notifyMileageNudge": "Monthly “update your mileage” nudge",
     "account": "Account",
-    "signedInAs": "Signed in as {email}"
+    "signedInAs": "Signed in as {email}",
+    "signedInTelegram": "Signed in with Telegram {username}"
   },
   "ai": {
     "title": "AI assistant",
@@ -444,7 +453,14 @@
     "approvedMsg": "✅ Approved. The shop will see it.",
     "declinedMsg": "❌ Declined.",
     "alreadyDecided": "Already decided.",
-    "error": "Something went wrong. Try again."
+    "error": "Something went wrong. Try again.",
+    "loginPrompt": "🔐 Sign in to Torque?\nDevice: {device}\n\nIf you didn't request this, tap No.",
+    "loginConfirm": "✅ Sign in",
+    "loginApproved": "✅ Signed in — go back to your browser.",
+    "loginDeclined": "Sign-in declined.",
+    "loginExpired": "This sign-in request has expired. Start again in the app.",
+    "magicLink": "🔑 Your Torque sign-in link (valid 15 minutes):",
+    "signInButton": "Sign in"
   },
   "shop": {
     "title": "Service job",

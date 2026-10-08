@@ -1,22 +1,47 @@
 import "server-only";
 import { Resend } from "resend";
+import { eq } from "drizzle-orm";
+import { db, schema } from "@/db";
+import { tgSend } from "@/lib/telegram-api";
+import { translator } from "@/i18n/server-translate";
+import { AppError } from "@/lib/errors";
 
+/**
+ * Deliver a sign-in link. Order of preference:
+ *  1. Resend email (if configured and the account has a real email)
+ *  2. Telegram message (if the account has the bot linked)
+ *  3. Dev console
+ */
 export async function sendMagicLinkEmail(email: string, url: string) {
   const key = process.env.RESEND_API_KEY;
-  if (!key) {
-    // Dev fallback: no email provider configured.
+  const placeholder = email.endsWith("@users.torque.local");
+
+  if (key && !placeholder) {
+    const resend = new Resend(key);
+    const { error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM ?? "Torque <onboarding@resend.dev>",
+      to: email,
+      subject: "Your Torque sign-in link · Посилання для входу",
+      html: magicLinkHtml(url),
+      text: `Sign in to Torque: ${url}\n\nУвійти в Torque: ${url}\n\nThe link expires in 15 minutes.`,
+    });
+    if (error) throw new Error(`Email send failed: ${error.message}`);
+    return;
+  }
+
+  const u = await db.query.user.findFirst({ where: eq(schema.user.email, email) });
+  const s = u && (await db.query.userSettings.findFirst({ where: eq(schema.userSettings.userId, u.id) }));
+  if (s?.telegramChatId && process.env.TELEGRAM_BOT_TOKEN) {
+    const t = translator(s.locale);
+    const sent = await tgSend(s.telegramChatId, t("bot.magicLink"), { buttons: [[{ text: t("bot.signInButton"), url }]] });
+    if (sent) return;
+  }
+
+  if (process.env.NODE_ENV !== "production") {
     console.log(`\n🔑 Magic link for ${email}:\n${url}\n`);
     return;
   }
-  const resend = new Resend(key);
-  const { error } = await resend.emails.send({
-    from: process.env.EMAIL_FROM ?? "Torque <onboarding@resend.dev>",
-    to: email,
-    subject: "Your Torque sign-in link · Посилання для входу",
-    html: magicLinkHtml(url),
-    text: `Sign in to Torque: ${url}\n\nУвійти в Torque: ${url}\n\nThe link expires in 15 minutes.`,
-  });
-  if (error) throw new Error(`Email send failed: ${error.message}`);
+  throw new AppError("not_configured", "No way to deliver the sign-in link: use “Sign in with Telegram”.");
 }
 
 function magicLinkHtml(url: string) {

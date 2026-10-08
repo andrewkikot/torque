@@ -1,5 +1,6 @@
 import { createBot, BOT_COMMANDS } from "@/lib/bot/bot";
 import { isAuthorizedCron } from "@/lib/cron-auth";
+import { appUrl } from "@/lib/app-url";
 
 /**
  * One-time setup: registers the webhook and command menu.
@@ -8,7 +9,7 @@ import { isAuthorizedCron } from "@/lib/cron-auth";
 export async function GET(req: Request) {
   if (!isAuthorizedCron(req)) return new Response("unauthorized", { status: 401 });
   const bot = createBot();
-  const url = `${process.env.NEXT_PUBLIC_APP_URL}/api/telegram`;
+  const url = `${appUrl()}/api/telegram`;
   await bot.api.setWebhook(url, {
     secret_token: process.env.TELEGRAM_WEBHOOK_SECRET,
     allowed_updates: ["message", "callback_query"],

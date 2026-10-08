@@ -6,9 +6,10 @@ import { nextCookies } from "better-auth/next-js";
 import { db, schema } from "@/db";
 import { sendMagicLinkEmail } from "@/lib/email";
 import { magicCapture } from "@/lib/magic-capture";
+import { appUrl } from "@/lib/app-url";
 
 export const auth = betterAuth({
-  baseURL: process.env.NEXT_PUBLIC_APP_URL,
+  baseURL: appUrl(),
   secret: process.env.BETTER_AUTH_SECRET,
   database: drizzleAdapter(db, {
     provider: "pg",

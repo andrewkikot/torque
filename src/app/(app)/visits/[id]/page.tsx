@@ -14,6 +14,7 @@ import { SharePanel } from "@/components/visit/share-panel";
 import { AutoRefresh } from "@/components/visit/auto-refresh";
 import { OwnerStatusControls, OwnerComposer, OwnerWorkPanel, DeleteVisitButton } from "@/components/visit/owner-visit-client";
 import { CarPhoto } from "@/components/car/car-photo";
+import { appUrl } from "@/lib/app-url";
 
 export default async function VisitPage({ params }: PageProps<"/visits/[id]">) {
   const { id } = await params;
@@ -71,7 +72,7 @@ export default async function VisitPage({ params }: PageProps<"/visits/[id]">) {
               visitId={visit.id}
               token={visit.shareToken}
               enabled={visit.shareEnabled}
-              appUrl={process.env.NEXT_PUBLIC_APP_URL ?? ""}
+              appUrl={appUrl()}
               title={`${carName} · ${visit.title}`}
             />
           )}

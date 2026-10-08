@@ -6,6 +6,7 @@ import { createGroq } from "@ai-sdk/groq";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import type { AiProvider } from "@/db/schema";
 import { providerMeta } from "./providers";
+import { appUrl } from "@/lib/app-url";
 
 export type ModelConfig = { provider: AiProvider; model: string; apiKey: string; baseUrl?: string | null };
 
@@ -25,7 +26,7 @@ export function buildModel({ provider, model, apiKey, baseUrl }: ModelConfig) {
         name: "openrouter",
         apiKey,
         baseURL: baseUrl || providerMeta("openrouter").defaultBaseUrl!,
-        headers: { "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL ?? "", "X-Title": "Torque" },
+        headers: { "HTTP-Referer": appUrl(), "X-Title": "Torque" },
       })(model);
     case "openai_compatible":
       if (!baseUrl) throw new Error("Base URL is required");

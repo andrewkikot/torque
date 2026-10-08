@@ -6,8 +6,8 @@ import { translator } from "@/i18n/server-translate";
 import { STATUS_EMOJI, type VisitStatusValue } from "@/lib/domain/visit-status";
 import { formatMoney } from "@/lib/format";
 import type { Car, ServiceVisit, VisitEvent, WorkItem } from "@/db/schema";
+import { appUrl } from "@/lib/app-url";
 
-const appUrl = () => process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 async function target(userId: string) {
   const s = await db.query.userSettings.findFirst({ where: eq(schema.userSettings.userId, userId) });

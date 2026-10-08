@@ -6,6 +6,7 @@ import { plansWithDue } from "@/lib/services/maintenance";
 import { translator } from "@/i18n/server-translate";
 import { tgSend, escapeHtml } from "@/lib/telegram-api";
 import { formatNumber } from "@/lib/format";
+import { appUrl } from "@/lib/app-url";
 
 const DAY = 86_400_000;
 
@@ -63,7 +64,7 @@ export async function runDailyReminders() {
 
       if (lines.length) {
         await tgSend(s.telegramChatId!, `${t("notify.dueTitle")}\n\n${lines.join("\n")}`, {
-          buttons: [[{ text: t("notify.open"), url: `${process.env.NEXT_PUBLIC_APP_URL}/garage` }]],
+          buttons: [[{ text: t("notify.open"), url: `${appUrl()}/garage` }]],
         });
         messages++;
       }

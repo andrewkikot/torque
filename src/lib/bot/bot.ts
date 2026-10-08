@@ -16,8 +16,8 @@ import { parseMileage, localeFromTelegram } from "./parse";
 import { chat, resolvePending, type BotAiResult, type PendingAction } from "./ai";
 import { getPendingLogin, userForTelegram, decideLogin } from "@/lib/services/telegram-login";
 import type { UserSettings } from "@/db/schema";
+import { appUrl } from "@/lib/app-url";
 
-const appUrl = () => process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 type Linked = { settings: UserSettings; t: T };
 

@@ -1,4 +1,3 @@
-import "dotenv/config";
 import { config } from "dotenv";
 import { defineConfig } from "drizzle-kit";
 
@@ -8,5 +7,8 @@ export default defineConfig({
   schema: "./src/db/schema.ts",
   out: "./src/db/migrations",
   dialect: "postgresql",
-  dbCredentials: { url: process.env.DATABASE_URL! },
+  // Migrations prefer the direct (unpooled) Neon connection when available.
+  dbCredentials: {
+    url: (process.env.DATABASE_URL_UNPOOLED ?? process.env.TORQUE_DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL ?? process.env.TORQUE_DATABASE_URL)!,
+  },
 });

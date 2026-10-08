@@ -5,7 +5,8 @@ import { drizzle as drizzlePg } from "drizzle-orm/node-postgres";
 import * as schema from "./schema";
 
 function createDb() {
-  const url = process.env.DATABASE_URL;
+  // The Vercel ↔ Neon integration may add a project prefix (e.g. TORQUE_DATABASE_URL).
+  const url = process.env.DATABASE_URL ?? process.env.TORQUE_DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is not set");
   // Neon (production / preview): stateless HTTP driver, ideal for serverless + scale-to-zero.
   if (url.includes("neon.tech") || process.env.DB_DRIVER === "neon") {

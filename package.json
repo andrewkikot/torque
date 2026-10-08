@@ -13,7 +13,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "seed": "tsx --require ./scripts/no-server-only.cjs scripts/seed.ts",
-    "telegram:setup": "tsx scripts/telegram-setup.ts"
+    "telegram:setup": "tsx scripts/telegram-setup.ts",
+    "vercel-build": "node scripts/vercel-migrate.mjs && next build"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.76",

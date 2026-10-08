@@ -14,6 +14,27 @@ export const workshopInput = z.object({
   address: z.string().trim().max(160).optional().nullable().transform((v) => v || null),
   phone: z.string().trim().max(40).optional().nullable().transform((v) => v || null),
   accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  logoUrl: z.string().url().max(500).optional().nullable().or(z.literal("").transform(() => null)),
+  description: z.string().trim().max(500).optional().nullable().transform((v) => v || null),
+  hours: z.string().trim().max(160).optional().nullable().transform((v) => v || null),
+  // "automaster.ua" → "https://automaster.ua"; only http(s) links are stored.
+  website: z
+    .string()
+    .trim()
+    .max(200)
+    .optional()
+    .nullable()
+    .transform((v) => (v ? (/^https?:\/\//i.test(v) ? v : `https://${v}`) : null))
+    .refine((v) => v == null || /^https?:\/\/[^\s/]+\.[^\s]+$/i.test(v), { message: "Enter a valid website" }),
+  // "@automaster_kyiv" or "t.me/automaster_kyiv" → "automaster_kyiv"
+  telegram: z
+    .string()
+    .trim()
+    .max(64)
+    .optional()
+    .nullable()
+    .transform((v) => (v ? v.replace(/^(https?:\/\/)?(t\.me\/|@)/i, "") : null))
+    .refine((v) => v == null || /^[a-zA-Z0-9_]{4,32}$/.test(v), { message: "Enter a Telegram username" }),
 });
 
 /** Workshops the user belongs to, oldest membership first. */

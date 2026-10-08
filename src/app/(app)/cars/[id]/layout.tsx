@@ -7,11 +7,15 @@ import { accentStyle } from "@/lib/utils";
 import { CarPhoto } from "@/components/car/car-photo";
 import { OdometerWidget } from "@/components/car/odometer";
 import { CarTabs } from "@/components/car/car-tabs";
+import { ShareCar } from "@/components/car/share-car";
+import { getShare } from "@/lib/services/car-share";
+import { appUrl } from "@/lib/app-url";
+import { DEFAULT_SHARE_OPTIONS } from "@/db/schema";
 
 export default async function CarLayout({ children, params }: LayoutProps<"/cars/[id]">) {
   const { id } = await params;
-  const { car, settings } = await loadCar(id);
-  const perDay = await getDailyDistance(car.id);
+  const { car, settings, user } = await loadCar(id);
+  const [perDay, share] = await Promise.all([getDailyDistance(car.id), getShare(user.id, car.id)]);
   const t = await getTranslations();
   const title = car.nickname || `${car.make} ${car.model}`;
 
@@ -24,12 +28,20 @@ export default async function CarLayout({ children, params }: LayoutProps<"/cars
           <Link href="/garage" className="grid size-10 place-items-center rounded-full bg-black/30 text-white backdrop-blur-md hover:bg-black/45" aria-label={t("common.back")}>
             <ArrowLeft className="size-5" />
           </Link>
+          <div className="flex items-center gap-2">
+          <ShareCar
+            carId={car.id}
+            appUrl={appUrl()}
+            defaults={DEFAULT_SHARE_OPTIONS}
+            initial={share ? { token: share.token, enabled: share.enabled, options: share.options, views: share.views } : null}
+          />
           <Link
             href={`/cars/${car.id}/edit`}
             className="flex h-10 items-center gap-2 rounded-full bg-black/30 px-4 text-sm font-semibold text-white backdrop-blur-md hover:bg-black/45"
           >
             <Pencil className="size-4" /> {t("common.edit")}
           </Link>
+          </div>
         </div>
         <div className="absolute inset-x-4 bottom-4 flex flex-wrap items-end justify-between gap-4 sm:inset-x-6 sm:bottom-6">
           <div className="min-w-0 text-white">

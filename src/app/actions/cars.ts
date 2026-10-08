@@ -64,3 +64,22 @@ export async function checkinCodeAction(carId: string, rotate = false) {
     return { code };
   });
 }
+
+export async function saveShareAction(carId: string, input: { enabled?: boolean; options?: Record<string, boolean> }) {
+  const user = await requireUser();
+  return run(async () => {
+    const { saveShare } = await import("@/lib/services/car-share");
+    const s = await saveShare(user.id, carId, input);
+    revalidatePath(`/c/${s.token}`);
+    return { token: s.token, enabled: s.enabled, options: s.options, views: s.views };
+  });
+}
+
+export async function regenerateShareAction(carId: string) {
+  const user = await requireUser();
+  return run(async () => {
+    const { regenerateShare } = await import("@/lib/services/car-share");
+    const s = await regenerateShare(user.id, carId);
+    return { token: s.token, enabled: s.enabled, options: s.options, views: s.views };
+  });
+}

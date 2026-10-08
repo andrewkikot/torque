@@ -184,6 +184,42 @@ export const cars = pgTable(
   (t) => [index("cars_user_idx").on(t.userId)],
 );
 
+/** What a public car page shows. Everything off by default except the basics. */
+export type CarShareOptions = {
+  odometer: boolean;
+  plate: boolean;
+  vin: boolean;
+  history: boolean;
+  costs: boolean;
+  receipts: boolean;
+  maintenance: boolean;
+  workshops: boolean;
+};
+
+export const DEFAULT_SHARE_OPTIONS: CarShareOptions = {
+  odometer: true,
+  plate: false,
+  vin: false,
+  history: true,
+  costs: false,
+  receipts: false,
+  maintenance: true,
+  workshops: true,
+};
+
+/** One public, read-only link per car ("car passport"). */
+export const carShares = pgTable("car_shares", {
+  carId: text("car_id")
+    .primaryKey()
+    .references(() => cars.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  enabled: boolean("enabled").notNull().default(true),
+  options: jsonb("options").$type<CarShareOptions>().notNull(),
+  views: integer("views").notNull().default(0),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
 export const odometerSourceEnum = pgEnum("odometer_source", ["web", "telegram", "service", "ai"]);
 
 export const odometerReadings = pgTable(
@@ -209,6 +245,11 @@ export const workshops = pgTable("workshops", {
   address: text("address"),
   phone: text("phone"),
   accentColor: text("accent_color").notNull().default("#0ea5e9"),
+  logoUrl: text("logo_url"),
+  description: text("description"),
+  hours: text("hours"),
+  website: text("website"),
+  telegram: text("telegram"),
   createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
   createdAt: createdAt(),
 });

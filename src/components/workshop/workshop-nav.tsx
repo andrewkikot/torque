@@ -4,14 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { motion } from "motion/react";
-import { LayoutGrid, Plus, Users, CarFront } from "lucide-react";
+import { LayoutGrid, Plus, Store, CarFront } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/logo";
 
 const items = [
   { href: "/w", key: "board", icon: LayoutGrid, exact: true },
   { href: "/w/new", key: "newJob", icon: Plus, exact: false },
-  { href: "/w/settings", key: "team", icon: Users, exact: false },
+  { href: "/w/settings", key: "settings", icon: Store, exact: false },
   { href: "/garage", key: "myGarage", icon: CarFront, exact: false },
 ] as const;
 

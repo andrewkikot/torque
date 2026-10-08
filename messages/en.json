@@ -570,7 +570,8 @@
       "board": "Jobs",
       "newJob": "New job",
       "team": "Team",
-      "myGarage": "Garage"
+      "myGarage": "Garage",
+      "settings": "Workshop"
     },
     "workingOnIt": "Workshop",
     "call": "Call",
@@ -636,6 +637,60 @@
     "switch": "Switch workshop",
     "forWorkshops": "For workshops",
     "forWorkshopsSub": "Mechanic or workshop owner? Run your jobs in Torque and keep customers updated automatically.",
-    "memberOf": "You're on the team: {names}"
+    "memberOf": "You're on the team: {names}",
+    "profile": "Profile",
+    "settingsSub": "What customers see on their job page, and who's on your team.",
+    "onlyOwnerEdits": "Only the workshop owner can edit the profile.",
+    "uploadLogo": "Upload logo",
+    "changeLogo": "Change logo",
+    "description": "About",
+    "descriptionHint": "A line or two: what you specialise in, brands you service.",
+    "hours": "Opening hours",
+    "hoursPlaceholder": "Mon–Fri 9:00–19:00, Sat 10:00–16:00",
+    "website": "Website"
+  },
+  "share": {
+    "button": "Share car",
+    "title": "Public car page",
+    "sub": "A read-only page with this car's history: handy when selling or showing a mechanic. Only what you switch on below is shown.",
+    "on": "Link is on",
+    "off": "Link is off",
+    "preview": "Open",
+    "views": "{count, plural, =0 {No views yet} one {# view} other {# views}}",
+    "regenerate": "New link",
+    "regenerated": "New link created; the old one stopped working",
+    "whatToShow": "What to show",
+    "always": "Make, model, year, photo and specs are always shown.",
+    "create": "Create public link",
+    "field": {
+      "history": "Service history",
+      "costs": "Costs",
+      "receipts": "Receipt photos",
+      "workshops": "Workshop names",
+      "maintenance": "Maintenance status",
+      "odometer": "Mileage",
+      "plate": "License plate",
+      "vin": "VIN"
+    },
+    "fieldHint": {
+      "history": "Every repair, part and service with dates",
+      "costs": "Prices and the total spent",
+      "receipts": "Links to receipt photos you attached",
+      "workshops": "Which workshop did the job",
+      "maintenance": "What's done and what's due soon",
+      "odometer": "Current mileage and mileage at each service",
+      "plate": "Your registration number",
+      "vin": "Vehicle identification number"
+    },
+    "passport": "Service passport",
+    "records": "Records",
+    "byWorkshop": "By workshops",
+    "since": "Records since",
+    "historyNote": "✓ marks work recorded by a workshop through Torque. Other entries were added by the owner.",
+    "workshopRecord": "Workshop record",
+    "ownerRecord": "Owner record",
+    "ctaTitle": "Keep your car's story too",
+    "ctaSub": "Service book, reminders and live updates from your workshop. Free.",
+    "disclaimer": "Shared by the car's owner. Torque does not verify owner-entered records. <terms>Terms</terms>"
   }
 }

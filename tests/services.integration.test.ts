@@ -137,6 +137,46 @@ describe.skipIf(!enabled)("services (local DB)", async () => {
     expect(await workshops.membership(A, shop.id)).toBeNull();
   });
 
+  it("public car page shows only what the owner switched on", async () => {
+    const share = await import("@/lib/services/car-share");
+    const car = await cars.createCar(A, { make: "Audi", model: "A4", year: 2018, vin: "WAUZZZ8K9JA000001", plate: "AA 0001 AA", currentOdometer: 90000, fuel: "diesel" });
+    await work.addWork(A, { carId: car.id, name: "Timing belt", category: "timing", cost: 7000, odometer: 89000 });
+    await expect(share.saveShare(B, car.id, {})).rejects.toThrow(); // not the owner
+
+    const s1 = await share.saveShare(A, car.id, {}); // defaults: history on, costs/VIN/plate off
+    let pub = (await share.getPublicCar(s1.token))!;
+    expect(pub.car.vin).toBeNull();
+    expect(pub.car.plate).toBeNull();
+    expect(pub.history[0].cost).toBeNull();
+    expect(pub.stats.total).toBeNull();
+    expect(JSON.stringify(pub)).not.toContain("WAUZZZ");
+    expect(pub.history.map((h) => h.name)).toEqual(["Timing belt"]);
+
+    await share.saveShare(A, car.id, { options: { costs: true, vin: true, odometer: false } });
+    pub = (await share.getPublicCar(s1.token, { countView: true }))!;
+    expect(pub.car.vin).toBe("WAUZZZ8K9JA000001");
+    expect(pub.history[0].cost).toBe(7000);
+    expect(pub.car.odometer).toBeNull();
+    expect(pub.history[0].odometer).toBeNull();
+    expect((await share.getShare(A, car.id))!.views).toBe(1);
+
+    await share.saveShare(A, car.id, { enabled: false });
+    expect(await share.getPublicCar(s1.token)).toBeNull();
+    await share.saveShare(A, car.id, { enabled: true });
+    const s2 = await share.regenerateShare(A, car.id);
+    expect(await share.getPublicCar(s1.token)).toBeNull(); // old link dead
+    expect(await share.getPublicCar(s2.token)).not.toBeNull();
+  });
+
+  it("workshop profile: owner edits, links are normalized", async () => {
+    const shop = await workshops.createWorkshop(B, { name: "Profile Garage" });
+    const w = await workshops.updateWorkshop(B, shop.id, { website: "automaster.ua", telegram: "https://t.me/automaster_kyiv", hours: "Mon–Fri 9–19", description: "VAG specialists" });
+    expect(w.website).toBe("https://automaster.ua");
+    expect(w.telegram).toBe("automaster_kyiv");
+    await expect(workshops.updateWorkshop(B, shop.id, { website: "javascript:alert(1)" })).rejects.toThrow();
+    await expect(workshops.updateWorkshop(A, shop.id, { name: "Hijack" })).rejects.toThrow();
+  });
+
   it("stores AI keys encrypted and never exposes them publicly", async () => {
     process.env.ENCRYPTION_KEY ??= Buffer.alloc(32, 1).toString("base64");
     await ai.saveAiSettings(A, { provider: "google", model: "gemini-3.8-flash", apiKey: "AIzaSECRETKEY123456" });

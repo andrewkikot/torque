@@ -1,6 +1,6 @@
 export class AppError extends Error {
   constructor(
-    public code: "not_found" | "forbidden" | "invalid" | "rate_limited" | "not_configured",
+    public code: "not_found" | "forbidden" | "invalid" | "rate_limited" | "not_configured" | "limit",
     message?: string,
   ) {
     super(message ?? code);

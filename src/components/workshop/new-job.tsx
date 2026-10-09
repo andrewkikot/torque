@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/field";
 import { checkInAction, walkInAction } from "@/app/actions/workshop";
+import { toastActionError } from "@/lib/action-toast";
 
 /** Type the customer's TQ-code when scanning isn't possible. */
 export function CodeEntry() {
@@ -81,7 +82,7 @@ export function WalkInForm() {
             setBusy(true);
             const r = await walkInAction({ ...v, eta: v.eta ? new Date(v.eta).toISOString() : null });
             setBusy(false);
-            if (!r.ok) return toast.error(r.error);
+            if (!r.ok) return toastActionError(r, t("plan.upgrade"));
             router.push(`/w/jobs/${r.data.id}`);
           }}
         >
@@ -136,7 +137,7 @@ export function CheckInForm({ code, odometer }: { code: string; odometer: number
           setBusy(true);
           const r = await checkInAction(code, { title, eta: eta ? new Date(eta).toISOString() : null, odometer: odo ? Number(odo.replace(/\D/g, "")) : null });
           setBusy(false);
-          if (!r.ok) return toast.error(r.error);
+          if (!r.ok) return toastActionError(r, t("plan.upgrade"));
           router.replace(`/w/jobs/${r.data.id}`);
         }}
       >

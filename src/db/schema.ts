@@ -281,6 +281,30 @@ export const workshopInvites = pgTable("workshop_invites", {
   createdAt: createdAt(),
 });
 
+export const licenseStatusEnum = pgEnum("license_status", ["new", "active", "revoked"]);
+
+/** Pro activation keys. The key itself is shown once; only its hash is stored. */
+export const licenses = pgTable(
+  "licenses",
+  {
+    id: id(),
+    keyHash: text("key_hash").notNull().unique(),
+    keyHint: text("key_hint").notNull(),
+    plan: text("plan").notNull().default("pro"),
+    seats: integer("seats").notNull().default(5),
+    durationDays: integer("duration_days").notNull(),
+    note: text("note"),
+    status: licenseStatusEnum("status").notNull().default("new"),
+    workshopId: text("workshop_id").references(() => workshops.id, { onDelete: "set null" }),
+    activatedBy: text("activated_by").references(() => user.id, { onDelete: "set null" }),
+    activatedAt: timestamp("activated_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("licenses_workshop_idx").on(t.workshopId, t.status)],
+);
+
 export const visitStatusEnum = pgEnum("visit_status", [
   "planned",
   "dropped_off",
@@ -543,6 +567,7 @@ export const subscribersRelations = relations(visitSubscribers, ({ one }) => ({
   visit: one(serviceVisits, { fields: [visitSubscribers.visitId], references: [serviceVisits.id] }),
 }));
 
+export type License = typeof licenses.$inferSelect;
 export type Car = typeof cars.$inferSelect;
 export type Workshop = typeof workshops.$inferSelect;
 export type WorkshopRole = (typeof workshopRoleEnum.enumValues)[number];

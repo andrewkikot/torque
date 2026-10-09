@@ -27,6 +27,7 @@ describe.skipIf(!enabled)("services (local DB)", async () => {
     ]);
   });
   afterAll(async () => {
+    await db.delete(schema.licenses).where(inArray(schema.licenses.createdBy, [A, B]));
     await db.delete(schema.workshops).where(inArray(schema.workshops.createdBy, [A, B]));
     await db.delete(schema.user).where(inArray(schema.user.id, [A, B]));
   });
@@ -175,6 +176,61 @@ describe.skipIf(!enabled)("services (local DB)", async () => {
     expect(w.telegram).toBe("automaster_kyiv");
     await expect(workshops.updateWorkshop(B, shop.id, { website: "javascript:alert(1)" })).rejects.toThrow();
     await expect(workshops.updateWorkshop(A, shop.id, { name: "Hijack" })).rejects.toThrow();
+  });
+
+  it("licenses: issue, activate, stack, limits, expiry", async () => {
+    const lic = await import("@/lib/services/licenses");
+    process.env.BILLING_ENABLED = "true";
+    try {
+      const shop = await workshops.createWorkshop(B, { name: "Billing Garage" });
+      const staff = { kind: "staff" as const, userId: B };
+
+      // Free: 30 jobs per month
+      for (let i = 0; i < 30; i++) await visits.createWalkIn(B, shop.id, { vehicleMake: "VW", title: `Job ${i}` });
+      await expect(visits.createWalkIn(B, shop.id, { vehicleMake: "VW", title: "31st" })).rejects.toThrow(/Free plan/);
+
+      // Free: 3 photos per job
+      const job = (await visits.listWorkshopBoard(B, shop.id))[0];
+      for (let i = 0; i < 3; i++) await visits.addNote(staff, job.id, "", `https://blob.example/p${i}.webp`);
+      await expect(visits.addNote(staff, job.id, "", "https://blob.example/p4.webp")).rejects.toThrow(/photos/);
+
+      // Free: owner + 1 mechanic
+      const invite = await workshops.createInvite(B, shop.id);
+      await workshops.acceptInvite(invite.token, A);
+      const C = `test-c-${Date.now()}`;
+      await db.insert(schema.user).values({ id: C, name: "Carl", email: `${C}@test.local` });
+      await expect(workshops.acceptInvite(invite.token, C)).rejects.toThrow(/team members/);
+
+      // Issue keys; only hashes stored
+      const [k1, k2] = await lic.generateLicenses(B, { seats: 5, months: 1, quantity: 2, note: "test" });
+      const stored = await db.query.licenses.findMany({ where: eq(schema.licenses.note, "test") });
+      expect(JSON.stringify(stored)).not.toContain(k1.slice(7));
+
+      // Only the owner activates; bad keys rejected
+      await expect(lic.activateLicense(A, shop.id, k1)).rejects.toThrow(/owner/);
+      await expect(lic.activateLicense(B, shop.id, "TQ-PRO-2222-3333-4444")).rejects.toThrow(/not found/);
+      const a1 = await lic.activateLicense(B, shop.id, k1.toLowerCase().replace(/-/g, " "));
+      await expect(lic.activateLicense(B, shop.id, k1)).rejects.toThrow(/already used/);
+      const a2 = await lic.activateLicense(B, shop.id, k2); // stacks
+      expect(a2.expiresAt!.getTime() - a1.expiresAt!.getTime()).toBe(a1.durationDays * 86_400_000);
+
+      // Pro lifts the limits
+      expect((await lic.getEntitlements(shop.id)).plan).toBe("pro");
+      await visits.createWalkIn(B, shop.id, { vehicleMake: "VW", title: "31st on Pro" });
+      await visits.addNote(staff, job.id, "", "https://blob.example/p4.webp");
+      await workshops.acceptInvite(invite.token, C);
+
+      // Revoked/expired → back to Free, data intact
+      await db.update(schema.licenses).set({ expiresAt: new Date(Date.now() - 1000) }).where(eq(schema.licenses.workshopId, shop.id));
+      expect((await lic.getEntitlements(shop.id)).plan).toBe("free");
+      expect((await visits.listWorkshopBoard(B, shop.id)).length).toBeGreaterThan(0);
+      await db.delete(schema.user).where(eq(schema.user.id, C));
+    } finally {
+      delete process.env.BILLING_ENABLED;
+    }
+    // Billing off: nothing limited
+    const open = await workshops.createWorkshop(B, { name: "Open Garage" });
+    expect((await lic.getEntitlements(open.id)).jobsPerMonth).toBeNull();
   });
 
   it("stores AI keys encrypted and never exposes them publicly", async () => {

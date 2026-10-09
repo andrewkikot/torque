@@ -3,6 +3,7 @@ import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
 import { Plus, Search, Clock, ChevronRight } from "lucide-react";
 import { requireWorkshop } from "@/lib/workshop-context";
 import { listWorkshopBoard, vehicleLabel, visitTotal, type BoardFilter } from "@/lib/services/visits";
+import { planStatus } from "@/lib/services/licenses";
 import { STATUS_EMOJI } from "@/lib/domain/visit-status";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { ButtonLink } from "@/components/ui/button";
@@ -19,7 +20,10 @@ export default async function BoardPage({ searchParams }: PageProps<"/w">) {
   const filter = (FILTERS as string[]).includes(String(sp.f)) ? (sp.f as BoardFilter) : "active";
   const q = typeof sp.q === "string" ? sp.q : "";
   const { user, workshop } = await requireWorkshop();
-  const jobs = await listWorkshopBoard(user.id, workshop.id, { filter, q });
+  const [jobs, plan] = await Promise.all([listWorkshopBoard(user.id, workshop.id, { filter, q }), planStatus(user.id, workshop.id)]);
+  const e = plan.entitlements;
+  const nearLimit = e.jobsPerMonth != null && plan.usage.jobs >= Math.floor(e.jobsPerMonth * 0.8);
+  const proDaysLeft = e.plan === "pro" && e.expiresAt ? Math.ceil((e.expiresAt.getTime() - Date.now()) / 86_400_000) : null;
   const t = await getTranslations();
   const locale = await getLocale();
   const tz = await getTimeZone();
@@ -29,13 +33,29 @@ export default async function BoardPage({ searchParams }: PageProps<"/w">) {
       <AutoRefresh intervalMs={30_000} />
       <PageHeader
         title={workshop.name}
-        sub={t("workshop.boardSub")}
+        sub={e.plan === "pro" && e.expiresAt ? `${t("workshop.boardSub")} · Pro` : t("workshop.boardSub")}
         action={
           <ButtonLink href="/w/new" className="hidden sm:inline-flex">
             <Plus /> {t("workshop.nav.newJob")}
           </ButtonLink>
         }
       />
+      {(nearLimit || (proDaysLeft != null && proDaysLeft <= 14)) && (
+        <Link
+          href="/w/settings#plan"
+          className={cn(
+            "mb-4 flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm font-semibold",
+            nearLimit && plan.usage.jobs >= (e.jobsPerMonth ?? 0) ? "bg-danger/10 text-danger" : "bg-warning/10 text-warning",
+          )}
+        >
+          <span>
+            {nearLimit
+              ? t("plan.bannerJobs", { used: plan.usage.jobs, limit: e.jobsPerMonth ?? 0 })
+              : t("plan.bannerExpiring", { count: proDaysLeft ?? 0 })}
+          </span>
+          <span className="shrink-0 underline underline-offset-2">{nearLimit ? t("plan.upgrade") : t("plan.renew")}</span>
+        </Link>
+      )}
       <form className="relative mb-3" action="/w">
         <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted" />
         {filter !== "active" && <input type="hidden" name="f" value={filter} />}

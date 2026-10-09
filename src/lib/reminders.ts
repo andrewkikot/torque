@@ -1,5 +1,6 @@
 import "server-only";
-import { desc, eq, isNotNull } from "drizzle-orm";
+import { and, desc, eq, gte, isNotNull, lte } from "drizzle-orm";
+import { getEntitlements } from "@/lib/services/licenses";
 import { db, schema } from "@/db";
 import { listCars, carLabel } from "@/lib/services/cars";
 import { plansWithDue } from "@/lib/services/maintenance";
@@ -72,5 +73,40 @@ export async function runDailyReminders() {
       console.error("reminder failed for", s.userId, e);
     }
   }
+  messages += await licenseReminders();
   return { users: users.length, messages };
+}
+
+/** Tell workshop owners before (7 days, 1 day) and when their Pro license runs out. */
+async function licenseReminders() {
+  const now = Date.now();
+  const soon = await db.query.licenses.findMany({
+    where: and(eq(schema.licenses.status, "active"), lte(schema.licenses.expiresAt, new Date(now + 7 * DAY)), gte(schema.licenses.expiresAt, new Date(now - DAY))),
+  });
+  let sent = 0;
+  const seen = new Set<string>();
+  for (const l of soon) {
+    if (!l.workshopId || seen.has(l.workshopId)) continue;
+    seen.add(l.workshopId);
+    // Only the latest expiry matters when licenses were stacked.
+    const ent = await getEntitlements(l.workshopId);
+    if (ent.plan === "pro" && ent.expiresAt && ent.expiresAt.getTime() - now > 7 * DAY) continue;
+    const expiry = ent.expiresAt ?? l.expiresAt!;
+    const left = Math.ceil((expiry.getTime() - now) / DAY);
+    const bucket = left <= 0 ? "expired" : left <= 1 ? "1d" : "7d";
+    const ws = await db.query.workshops.findFirst({ where: eq(schema.workshops.id, l.workshopId) });
+    const owners = await db
+      .select({ userId: schema.workshopMembers.userId, chatId: schema.userSettings.telegramChatId, locale: schema.userSettings.locale })
+      .from(schema.workshopMembers)
+      .innerJoin(schema.userSettings, eq(schema.userSettings.userId, schema.workshopMembers.userId))
+      .where(and(eq(schema.workshopMembers.workshopId, l.workshopId), eq(schema.workshopMembers.role, "owner")));
+    for (const o of owners) {
+      if (!o.chatId || (await alreadySent(o.userId, `lic:${l.workshopId}:${expiry.toISOString()}:${bucket}`))) continue;
+      const t = translator(o.locale);
+      const text = bucket === "expired" ? t("plan.botExpired", { workshop: escapeHtml(ws?.name ?? "") }) : t("plan.botExpiring", { workshop: escapeHtml(ws?.name ?? ""), count: Math.max(1, left) });
+      await tgSend(o.chatId, text, { buttons: [[{ text: t("plan.renew"), url: `${appUrl()}/w/settings#plan` }]] });
+      sent++;
+    }
+  }
+  return sent;
 }

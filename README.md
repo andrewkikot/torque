@@ -82,6 +82,18 @@ npm run dev
    - Or add a walk-in customer and send them the tracking link.
 4. Move statuses, add work and photos, and ask for approval. The owner or customer is notified in Telegram. Mechanics who connected Telegram get a message when the customer approves, declines or writes.
 
+## Selling Pro to workshops
+Car owners are always free. Workshops are on **Free** (owner + 1 mechanic, 30 new jobs per month, 3 photos per job, Torque branding) or **Pro** (unlimited jobs, more seats, 20 photos per job, their own branding, team Telegram alerts).
+
+1. Add your email to `ADMIN_EMAILS` and open `/admin`.
+2. **Issue keys**: choose months, seats and quantity, and add a note (invoice, buyer). Keys look like `TQ-PRO-XXXX-XXXX-XXXX`. They are shown **once**, and only their hash is stored.
+3. Sell the key however you like. The workshop owner enters it in **Workshop → Plan**.
+   - A second key extends Pro from the current end date.
+   - Owners get Telegram reminders 7 days and 1 day before Pro ends.
+4. When Pro ends, the workshop drops back to Free automatically. No data is deleted.
+
+> ⚠️ **Commercial use:** Vercel's Hobby plan is non-commercial only. Keep `BILLING_ENABLED=false` there; with it off, nothing is limited and no prices are shown. Before charging money, move to Vercel Pro (or a host that allows commercial use), then set `BILLING_ENABLED=true`, `SALES_CONTACT` and `PRO_PRICE_LABEL`.
+
 ## How it fits together
 
 ```

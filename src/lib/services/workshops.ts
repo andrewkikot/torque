@@ -138,6 +138,10 @@ export async function getInvite(token: string) {
 export async function acceptInvite(token: string, userId: string) {
   const found = await getInvite(token);
   if (!found) throw new AppError("invalid", "This invite link has expired");
+  if (await membership(userId, found.workshop.id)) return found.workshop;
+  // Imported lazily: licenses.ts depends on this module.
+  const { assertCanAddMember } = await import("./licenses");
+  await assertCanAddMember(found.workshop.id);
   await db
     .insert(workshopMembers)
     .values({ workshopId: found.workshop.id, userId, role: found.invite.role })

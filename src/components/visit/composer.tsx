@@ -31,7 +31,11 @@ export function Composer({
     setBusy(true);
     const r = await onPost(text, photo);
     setBusy(false);
-    if (!r.ok) return toast.error(r.error);
+    if (!r.ok) {
+      // An empty message means the caller already showed its own toast (e.g. plan limit).
+      if (r.error) toast.error(r.error);
+      return;
+    }
     setText("");
     setPhoto(null);
     router.refresh();

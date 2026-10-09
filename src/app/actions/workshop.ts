@@ -166,3 +166,13 @@ export async function jobSharingAction(visitId: string, opts: { enabled?: boolea
     return { shareToken: v.shareToken, shareEnabled: v.shareEnabled };
   });
 }
+
+export async function activateLicenseAction(key: string) {
+  return run(async () => {
+    const { user, workshopId } = await current();
+    const { activateLicense } = await import("@/lib/services/licenses");
+    const l = await activateLicense(user.id, workshopId, key);
+    revalidatePath("/w", "layout");
+    return { expiresAt: l.expiresAt!.toISOString(), seats: l.seats };
+  });
+}

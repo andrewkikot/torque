@@ -9,6 +9,7 @@ import { canTransition, type VisitStatusValue } from "@/lib/domain/visit-status"
 import { bumpOdometer, findCarByCheckinCode, getCar, listCars, rotateCheckinCode } from "./cars";
 import { resetPlanFromWork } from "./maintenance";
 import { membership, requireMember } from "./workshops";
+import { assertCanAddPhoto, assertCanCreateJob } from "./licenses";
 import { notifyApprovalRequest, notifyCheckIn, notifyVisitUpdate, notifyWorkshop } from "@/lib/notify";
 import type { Car, ServiceVisit, Workshop } from "@/db/schema";
 
@@ -99,6 +100,7 @@ export async function previewCheckIn(userId: string, workshopId: string, code: s
 
 export async function checkInByCode(userId: string, workshopId: string, code: string, raw: unknown) {
   const { workshop } = await requireMember(userId, workshopId);
+  await assertCanCreateJob(workshopId);
   const data = jobBase.parse(raw);
   const car = await findCarByCheckinCode(code);
   if (!car) throw new AppError("invalid", "This code is not valid anymore. Ask the customer to show it again.");
@@ -134,6 +136,7 @@ export async function checkInByCode(userId: string, workshopId: string, code: st
 
 export async function createWalkIn(userId: string, workshopId: string, raw: unknown) {
   const { workshop } = await requireMember(userId, workshopId);
+  await assertCanCreateJob(workshopId);
   const data = walkInInput.parse(raw);
   const [visit] = await db
     .insert(serviceVisits)
@@ -361,6 +364,7 @@ export async function requestApproval(actor: Actor, visitId: string, input: { me
 export async function addNote(actor: Actor, visitId: string, message: string, photoUrl?: string | null) {
   const visit = await loadVisit(actor, visitId);
   if (actor.kind !== "staff" && photoUrl) throw new AppError("forbidden", "Only the workshop can add photos");
+  if (photoUrl && visit.workshopId) await assertCanAddPhoto(visit.workshopId, visitId);
   const text = message.trim().slice(0, 2000);
   if (!text && !photoUrl) throw new AppError("invalid", "Empty note");
   const [event] = await db

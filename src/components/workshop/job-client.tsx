@@ -7,8 +7,12 @@ import { WorkPanel } from "@/components/visit/work-panel";
 import { jobStatusAction, jobNoteAction, jobWorkAction, jobRemoveWorkAction } from "@/app/actions/workshop";
 import type { VisitStatusValue } from "@/lib/domain/visit-status";
 import type { VisitWork } from "@/components/visit/types";
+import { toastActionError } from "@/lib/action-toast";
 
-const ok = (r: { ok: boolean; error?: string }) => (r.ok ? ({ ok: true } as const) : ({ ok: false, error: r.error ?? "Error" } as const));
+const ok = (r: { ok: boolean; error?: string; code?: string }) => {
+  if (!r.ok && r.code === "limit") toastActionError({ error: r.error ?? "", code: r.code });
+  return r.ok ? ({ ok: true } as const) : ({ ok: false, error: r.code === "limit" ? "" : (r.error ?? "Error") } as const);
+};
 
 export function JobStatus({ visitId, status }: { visitId: string; status: VisitStatusValue }) {
   const t = useTranslations("shop");

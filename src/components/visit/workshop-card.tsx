@@ -16,7 +16,9 @@ type WorkshopInfo = {
 };
 
 /** Who is working on the car: profile, opening hours and ways to reach them. */
-export function WorkshopCard({ workshop }: { workshop: WorkshopInfo }) {
+export function WorkshopCard({ workshop: full, branding = true }: { workshop: WorkshopInfo; branding?: boolean }) {
+  // Free plan: name, address and phone only.
+  const workshop: WorkshopInfo = branding ? full : { name: full.name, city: full.city, address: full.address, phone: full.phone };
   const t = useTranslations("workshop");
   const tel = workshop.phone?.replace(/[^\d+]/g, "");
   return (

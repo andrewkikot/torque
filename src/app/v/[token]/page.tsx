@@ -3,6 +3,7 @@ import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 import { Clock } from "lucide-react";
 import { getVisitByToken, vehicleLabel } from "@/lib/services/visits";
+import { getEntitlements } from "@/lib/services/licenses";
 import { trackDecideAction, trackNoteAction } from "@/app/actions/shop";
 import { getCurrentUser } from "@/lib/session";
 import { listCars, carLabel } from "@/lib/services/cars";
@@ -36,6 +37,7 @@ export default async function TrackingPage({ params }: PageProps<"/v/[token]">) 
   const user = await getCurrentUser();
   const myCars = user && !visit.carId ? (await listCars(user.id)).map((c) => ({ id: c.id, name: carLabel(c), plate: c.plate })) : [];
   const bot = process.env.TELEGRAM_BOT_USERNAME;
+  const branding = visit.workshopId ? (await getEntitlements(visit.workshopId)).branding : false;
 
   return (
     <div style={accentStyle(accent)} className="min-h-dvh">
@@ -76,7 +78,7 @@ export default async function TrackingPage({ params }: PageProps<"/v/[token]">) 
             <Timeline events={visit.events} items={visit.workItems} currency={visit.currency} onDecide={trackDecideAction.bind(null, token)} viewer="customer" />
           </section>
           <aside className="order-1 flex flex-col gap-4 lg:order-2">
-            {visit.workshop && <WorkshopCard workshop={visit.workshop} />}
+            {visit.workshop && <WorkshopCard workshop={visit.workshop} branding={branding} />}
             <WorkPanel items={visit.workItems} currency={visit.currency} units="km" closed readOnly />
             {bot && !closed && <FollowInTelegram url={`https://t.me/${bot}?start=trk_${token}`} />}
             {!visit.carId && <SaveToGarage token={token} signedIn={!!user} cars={myCars} />}
@@ -92,7 +94,7 @@ export default async function TrackingPage({ params }: PageProps<"/v/[token]">) 
               ),
             })}
           </span>
-          <span>{t("shop.poweredBy")}</span>
+          {!branding && <span>{t("shop.poweredBy")}</span>}
         </footer>
       </main>
     </div>

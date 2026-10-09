@@ -7,6 +7,7 @@ import { STATUS_EMOJI, type VisitStatusValue } from "@/lib/domain/visit-status";
 import { formatMoney } from "@/lib/format";
 import { appUrl } from "@/lib/app-url";
 import { memberChats } from "@/lib/services/workshops";
+import { getEntitlements } from "@/lib/services/licenses";
 import type { Car, ServiceVisit, VisitEvent, WorkItem, Workshop } from "@/db/schema";
 
 type VisitCtx = ServiceVisit & { car: Car | null; workshop?: Workshop | null };
@@ -93,6 +94,8 @@ type WorkshopEvent = { kind: "approval"; approved: boolean; amount: number } | {
 /** Push to every workshop member with Telegram linked. */
 export async function notifyWorkshop(visit: VisitCtx, e: WorkshopEvent) {
   if (!visit.workshopId) return;
+  // Team Telegram pushes are a Pro feature.
+  if (!(await getEntitlements(visit.workshopId)).teamTelegram) return;
   for (const m of await memberChats(visit.workshopId)) {
     const t = translator(m.locale);
     const head = `<b>${vehicle(visit)}</b>${visit.vehiclePlate ? ` · ${escapeHtml(visit.vehiclePlate)}` : ""} · ${escapeHtml(visit.title)}`;

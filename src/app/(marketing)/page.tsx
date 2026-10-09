@@ -6,6 +6,8 @@ import { ButtonLink } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
 import { LocaleSwitch } from "@/components/locale-switch";
 import { HeroDemo } from "@/components/landing/hero-demo";
+import { Pricing } from "@/components/landing/pricing";
+import { billingEnabled } from "@/lib/plans";
 
 export default async function Landing() {
   if (await getCurrentUser()) redirect("/start");
@@ -55,6 +57,7 @@ export default async function Landing() {
           </div>
         ))}
       </section>
+      {billingEnabled() && process.env.PRO_PRICE_LABEL && <Pricing price={process.env.PRO_PRICE_LABEL} />}
       <section className="relative mx-auto max-w-6xl px-4 pb-16 sm:px-6">
         <div className="flex flex-col items-start gap-4 rounded-4xl bg-fg p-8 text-bg sm:flex-row sm:items-center sm:justify-between">
           <div>

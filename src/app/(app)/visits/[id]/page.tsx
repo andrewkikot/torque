@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
 import { ArrowLeft, Clock, Gauge, Wrench } from "lucide-react";
 import { membership } from "@/lib/services/workshops";
+import { getEntitlements } from "@/lib/services/licenses";
 import { ButtonLink } from "@/components/ui/button";
 import { requireUser, getSettings } from "@/lib/session";
 import { getVisit } from "@/lib/services/visits";
@@ -32,6 +33,7 @@ export default async function VisitPage({ params }: PageProps<"/visits/[id]">) {
   const settings = await getSettings(user.id);
   // Same person on both sides (e.g. a mechanic servicing their own car): offer the workshop view.
   const staff = visit.workshopId ? await membership(user.id, visit.workshopId) : null;
+  const branding = visit.workshopId ? (await getEntitlements(visit.workshopId)).branding : false;
   const t = await getTranslations();
   const locale = await getLocale();
   const tz = await getTimeZone();
@@ -83,7 +85,7 @@ export default async function VisitPage({ params }: PageProps<"/visits/[id]">) {
           <Timeline events={visit.events} items={visit.workItems} currency={visit.currency} onDecide={decideApprovalAction.bind(null, visit.id)} viewer="owner" />
         </section>
         <aside className="order-1 flex flex-col gap-4 lg:order-2">
-          {visit.workshop && <WorkshopCard workshop={visit.workshop} />}
+          {visit.workshop && <WorkshopCard workshop={visit.workshop} branding={branding} />}
           <WorkPanel items={visit.workItems} currency={visit.currency} units={settings.units} closed readOnly />
           {staff && (
             <ButtonLink href={`/w/jobs/${visit.id}`} variant="dark">

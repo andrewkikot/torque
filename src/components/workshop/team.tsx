@@ -121,7 +121,7 @@ export function JoinButton({ token }: { token: string }) {
         setBusy(true);
         const r = await acceptInviteAction(token);
         setBusy(false);
-        if (!r.ok) return toast.error(r.error);
+        if (!r.ok) return toast.error(r.error, { duration: 8000 });
         router.replace("/w");
         router.refresh();
       }}

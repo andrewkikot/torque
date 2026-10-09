@@ -11,6 +11,8 @@ import { EmptyState, PageHeader, SectionTitle } from "@/components/ui/card";
 import { STATUS_EMOJI } from "@/lib/domain/visit-status";
 import { accentStyle } from "@/lib/utils";
 import { WelcomeConfetti } from "@/components/confetti";
+import { adviceForCars } from "@/lib/services/tyres";
+import { TyreNudge } from "@/components/tyres/tyre-nudge";
 
 export const metadata = { title: "Garage" };
 
@@ -24,6 +26,7 @@ export default async function GaragePage({ searchParams }: PageProps<"/garage">)
   ]);
   const t = await getTranslations();
   const health = await Promise.all(cars.map((c) => plansWithDue(c)));
+  const tyreAdvice = await adviceForCars(user.id, cars.map((c) => c.id));
   const firstName = user.name?.split(" ")[0] || "";
 
   return (
@@ -66,6 +69,7 @@ export default async function GaragePage({ searchParams }: PageProps<"/garage">)
         </section>
       )}
 
+      {cars.length > 0 && settings.weatherLat == null && <TyreNudge />}
       {cars.length === 0 ? (
         <EmptyState
           icon="🚗"
@@ -86,6 +90,7 @@ export default async function GaragePage({ searchParams }: PageProps<"/garage">)
               health={health[i].health}
               next={health[i].plans.find((p) => p.due.status !== "unknown")}
               activeVisit={active.find((v) => v.carId === car.id)}
+              tyre={tyreAdvice.get(car.id)?.level === "soon" ? undefined : tyreAdvice.get(car.id)?.target}
               units={settings.units}
             />
           ))}

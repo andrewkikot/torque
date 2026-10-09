@@ -4,6 +4,7 @@ import { Plus, Search, Clock, ChevronRight } from "lucide-react";
 import { requireWorkshop } from "@/lib/workshop-context";
 import { listWorkshopBoard, vehicleLabel, visitTotal, type BoardFilter } from "@/lib/services/visits";
 import { planStatus } from "@/lib/services/licenses";
+import { daysUntil } from "@/lib/plans";
 import { STATUS_EMOJI } from "@/lib/domain/visit-status";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { ButtonLink } from "@/components/ui/button";
@@ -23,7 +24,7 @@ export default async function BoardPage({ searchParams }: PageProps<"/w">) {
   const [jobs, plan] = await Promise.all([listWorkshopBoard(user.id, workshop.id, { filter, q }), planStatus(user.id, workshop.id)]);
   const e = plan.entitlements;
   const nearLimit = e.jobsPerMonth != null && plan.usage.jobs >= Math.floor(e.jobsPerMonth * 0.8);
-  const proDaysLeft = e.plan === "pro" && e.expiresAt ? Math.ceil((e.expiresAt.getTime() - Date.now()) / 86_400_000) : null;
+  const proDaysLeft = e.plan === "pro" && e.expiresAt ? daysUntil(e.expiresAt) : null;
   const t = await getTranslations();
   const locale = await getLocale();
   const tz = await getTimeZone();

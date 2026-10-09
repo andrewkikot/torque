@@ -8,6 +8,10 @@ import { addWork } from "@/lib/services/work";
 import { getUpcoming, addPlan } from "@/lib/services/maintenance";
 import { listVisits, visitTotal, vehicleLabel } from "@/lib/services/visits";
 import { AppError } from "@/lib/errors";
+import { db, schema } from "@/db";
+import { eq } from "drizzle-orm";
+import { evaluateUser } from "@/lib/services/tyres";
+import { getForecast } from "@/lib/services/weather";
 
 const carId = z.string().describe("Car id from listCars or the garage context");
 
@@ -99,6 +103,25 @@ export function buildTools(userId: string, source: "ai" | "telegram" = "ai") {
             currency: v.currency,
           })),
         ),
+    }),
+
+    getTyreAdvice: tool({
+      description: "Seasonal tyre advice for the user's cars from the local weather forecast (+7 °C rule, frost/snow). Use for questions like 'do I need winter tyres yet?'.",
+      inputSchema: z.object({}),
+      execute: () =>
+        safe(async () => {
+          const s = await db.query.userSettings.findFirst({ where: eq(schema.userSettings.userId, userId) });
+          if (s?.weatherLat == null) return { error: "No region set. Ask the user to set it in Settings → Weather & tyres." };
+          const open = new Map((await evaluateUser(userId)).map((a) => [a.carId, a]));
+          const cars = await listCars(userId);
+          const forecast = s.weatherLat != null && s.weatherLon != null ? await getForecast(s.weatherLat, s.weatherLon) : null;
+          return {
+            place: s.weatherPlace,
+            forecast: forecast?.slice(0, 7),
+            cars: cars.map((c) => ({ name: carLabel(c), tyres: c.tyreSeason ?? "unknown", advice: open.get(c.id) ? { switchTo: open.get(c.id)!.target, level: open.get(c.id)!.level } : null })),
+            source: "MET Norway",
+          };
+        }),
     }),
 
     logOdometer: tool({

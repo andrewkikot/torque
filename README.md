@@ -73,6 +73,19 @@ npm run dev
    ```
 6. Open the app, sign in, and connect AI and Telegram from **Settings**.
 
+## Tyre reminders
+Torque checks the local forecast every morning (in the existing daily cron) and tells owners when to swap tyres. Owners set their region in **Settings → Weather & tyres**, or send the bot a 📍 location. Each car records which tyres are on it.
+
+The rule is the classic **+7 °C rule**:
+- **Summer → winter (September–May):**
+  - "time to switch" when 5 or more of the next 7 days average below +7 °C;
+  - "switch now" if snow, or frost of −2 °C or colder, is forecast within 3 days.
+- **Winter → summer (March–June):** when the whole next week stays above +7 °C with no frost.
+
+Owners get one Telegram message per car per season, with **Swapped** (which logs it in the service book) and **In 3 days** buttons. The car page shows the advice with a 7-day outlook.
+
+Forecasts come from **MET Norway Locationforecast** (`api.met.no`, the data behind yr.no). It's free, has no API key, and its licence allows commercial use with attribution. Requests send an identifying User-Agent and follow MET's caching headers. One forecast is cached per ~11 km cell and shared by everyone nearby.
+
 ## For workshops
 1. Sign in and open **Settings → For workshops → Create a workshop** (or `/w/create`).
 2. Invite mechanics from **Team**. The invite link is valid for 7 days.

@@ -3,6 +3,9 @@ import { and, eq } from "drizzle-orm";
 import { getLocale, getTimeZone, getTranslations } from "next-intl/server";
 import { Sparkles, ChevronRight } from "lucide-react";
 import { ShowToMechanic } from "@/components/car/show-to-mechanic";
+import { TyreChip } from "@/components/tyres/tyre-chip";
+import { TyreBanner } from "@/components/tyres/tyre-banner";
+import { adviceForCars } from "@/lib/services/tyres";
 import { appUrl } from "@/lib/app-url";
 import { db, schema } from "@/db";
 import { loadCar } from "@/lib/page-data";
@@ -40,6 +43,7 @@ export default async function CarOverview({ params }: PageProps<"/cars/[id]">) {
       columns: { id: true, name: true },
     }),
   ]);
+  const advice = (await adviceForCars(user.id, [car.id])).get(car.id);
   const t = await getTranslations();
   const locale = await getLocale();
   const tz = await getTimeZone();
@@ -53,6 +57,10 @@ export default async function CarOverview({ params }: PageProps<"/cars/[id]">) {
           <ShowToMechanic carId={car.id} appUrl={appUrl()} />
           <QuickLink href={`/assistant?carId=${car.id}`} icon={<Sparkles className="size-5" />} label={t("assistant.title")} />
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <TyreChip carId={car.id} season={car.tyreSeason} hasLocation={settings.weatherLat != null} />
+        </div>
+        {advice && <TyreBanner carId={car.id} advice={advice.reason} place={advice.place} />}
         {active.map((v) => (
           <Link key={v.id} href={`/visits/${v.id}`} className="block">
             <Card className="border-accent/40 bg-gradient-to-br from-accent-soft to-card transition hover:-translate-y-0.5">

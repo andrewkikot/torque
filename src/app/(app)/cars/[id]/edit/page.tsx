@@ -35,6 +35,7 @@ export default async function EditCarPage({ params }: PageProps<"/cars/[id]/edit
           nickname: car.nickname ?? "",
           accentColor: car.accentColor,
           photoUrl: car.photoUrl,
+          tyreSeason: car.tyreSeason ?? "",
         }}
       />
       <CarDangerZone carId={car.id} archived={car.archived} />

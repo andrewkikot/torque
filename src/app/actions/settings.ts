@@ -23,6 +23,7 @@ const prefsInput = z
     notifyVisitUpdates: z.boolean(),
     notifyMaintenance: z.boolean(),
     notifyMileageNudge: z.boolean(),
+    notifyTyres: z.boolean(),
   })
   .partial();
 

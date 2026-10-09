@@ -451,7 +451,7 @@
     "linked": "✅ Connected to your Torque garage{name, select, empty {} other {, {name}}}!\n\nTry /km 84500 or /due.",
     "linkInvalid": "This link has expired. Generate a new one in Settings → Telegram.",
     "notLinked": "This chat isn't connected yet. Open Torque → Settings → Telegram → Connect.",
-    "help": "Commands:\n/km 84500 — update mileage\n/cars — your cars\n/due — upcoming maintenance\n/visit — active shop visits\n/log text — quick note for the assistant\n/lang — switch language\n/help — this message\n\nWith an AI key set in the app, just write to me in plain words or send a receipt photo.",
+    "help": "Commands:\n/km 84500 — update mileage\n/cars — your cars\n/due — upcoming maintenance\n/visit — active shop visits\n/tyres — when to swap tyres (send 📍 location to set your region)\n/log text — quick note for the assistant\n/lang — switch language\n/help — this message\n\nWith an AI key set in the app, just write to me in plain words or send a receipt photo.",
     "noCars": "No cars in your garage yet. Add one in the app.",
     "pickCar": "Which car?",
     "kmUsage": "Send it like this: /km 84500",
@@ -774,5 +774,61 @@
     "jobsMonth": "Jobs this month",
     "created": "Created",
     "noWorkshops": "No workshops yet"
+  },
+  "tyres": {
+    "reasonSnow": "snow expected on {day}",
+    "reasonFrost": "frost down to {min} °C on {day}",
+    "reasonCold": "{count} of the next 7 days below +7 °C",
+    "reasonWarm": "the next 7 days stay above +7 °C, no frost",
+    "titleWinter": "❄️ Time for winter tyres: {car}",
+    "titleUrgent": "❄️ Switch to winter tyres now: {car}",
+    "titleSummer": "☀️ Time for summer tyres: {car}",
+    "bannerWinter": "Time for winter tyres",
+    "bannerUrgent": "Switch to winter tyres now",
+    "bannerSummer": "Time for summer tyres",
+    "soonTitle": "Winter tyres soon",
+    "attribution": "Weather data: MET Norway (yr.no) · rule of thumb: below +7 °C, winter tyres grip better",
+    "swapped": "Swapped",
+    "later": "In 3 days",
+    "snoozed": "I'll remind you in 3 days",
+    "workName": {
+      "winter": "Tyre swap → winter",
+      "summer": "Tyre swap → summer"
+    },
+    "swappedDone": {
+      "winter": "Done: winter tyres on. Added to the service book.",
+      "summer": "Done: summer tyres on. Added to the service book."
+    },
+    "season": {
+      "summer": "Summer tyres",
+      "winter": "Winter tyres",
+      "all_season": "All-season",
+      "unknown": "Tyres: not set"
+    },
+    "seasonHint": {
+      "summer": "Remind me when it's time for winter tyres",
+      "winter": "Remind me when it's warm enough for summer tyres",
+      "all_season": "No seasonal reminders"
+    },
+    "whichTyres": "Which tyres are on now?",
+    "needLocation": "Reminders need your region.",
+    "setRegion": "Set region",
+    "settingsTitle": "Weather & tyres",
+    "settingsSub": "We check the local forecast every morning and tell you when it's time to switch between summer and winter tyres.",
+    "pickRegion": "Choose your region…",
+    "useMyLocation": "Use my location",
+    "myLocation": "My location",
+    "locationSaved": "Region saved: tyre reminders are on",
+    "geoUnavailable": "Location isn't available in this browser",
+    "geoDenied": "Couldn't get your location. Choose a region instead.",
+    "remove": "Remove",
+    "notify": "Tyre swap reminders in Telegram",
+    "notifyHint": "Also shown on the car page",
+    "pillWinter": "Winter tyres",
+    "pillSummer": "Summer tyres",
+    "nudgeTitle": "Get tyre-swap reminders",
+    "nudgeSub": "Set your region and we'll tell you when the weather turns.",
+    "botNoLocation": "Set your region first: Torque → Settings → Weather & tyres, or just send me your location 📍",
+    "botTitle": "Tyres · {place}"
   }
 }

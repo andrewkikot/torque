@@ -1,6 +1,9 @@
 import "server-only";
 import { and, desc, eq, gte, isNotNull, lte } from "drizzle-orm";
 import { getEntitlements } from "@/lib/services/licenses";
+import { evaluateUser, reminderUsers } from "@/lib/services/tyres";
+import { seasonKey } from "@/lib/domain/tyres";
+import { tyreTelegramText } from "@/lib/tyre-message";
 import { db, schema } from "@/db";
 import { listCars, carLabel } from "@/lib/services/cars";
 import { plansWithDue } from "@/lib/services/maintenance";
@@ -74,7 +77,45 @@ export async function runDailyReminders() {
     }
   }
   messages += await licenseReminders();
+  messages += await tyreReminders();
   return { users: users.length, messages };
+}
+
+/** Seasonal tyre swaps from the local forecast: one Telegram message per car per season (+1 if it turns urgent). */
+async function tyreReminders() {
+  let sent = 0;
+  for (const s of await reminderUsers()) {
+    try {
+      const open = await evaluateUser(s.userId);
+      if (!s.telegramChatId || !open.length) continue;
+      const t = translator(s.locale);
+      const cars = new Map((await listCars(s.userId)).map((c) => [c.id, c]));
+      for (const a of open) {
+        if (a.level === "soon") continue; // in-app heads-up only
+        const base = `tyres:${a.carId}:${a.target}:${seasonKey(a.target)}`;
+        if (a.level === "now") {
+          const urgentSent = await db.query.remindersLog.findFirst({ where: and(eq(schema.remindersLog.userId, s.userId), eq(schema.remindersLog.key, `${base}:urgent`)) });
+          if (urgentSent) continue;
+        }
+        if (await alreadySent(s.userId, `${base}:${a.level}`)) continue;
+        const car = cars.get(a.carId);
+        if (!car) continue;
+        await tgSend(s.telegramChatId, tyreTelegramText(t, carLabel(car), a.reason, a.place, s.locale), {
+          buttons: [
+            [
+              { text: `✅ ${t("tyres.swapped")}`, callback_data: `ty:${a.carId}:${a.target}` },
+              { text: `⏰ ${t("tyres.later")}`, callback_data: `tz:${a.carId}` },
+            ],
+            [{ text: t("notify.open"), url: `${appUrl()}/cars/${a.carId}` }],
+          ],
+        });
+        sent++;
+      }
+    } catch (e) {
+      console.error("tyre reminder failed for", s.userId, e);
+    }
+  }
+  return sent;
 }
 
 /** Tell workshop owners before (7 days, 1 day) and when their Pro license runs out. */

@@ -18,6 +18,8 @@ import { getPendingLogin, userForTelegram, decideLogin } from "@/lib/services/te
 import type { UserSettings } from "@/db/schema";
 import { appUrl } from "@/lib/app-url";
 import { TERMS_VERSION } from "@/lib/terms";
+import { evaluateUser, markSwapped, setLocation, snoozeAdvice } from "@/lib/services/tyres";
+import { tyreReason } from "@/lib/tyre-message";
 
 
 type Linked = { settings: UserSettings; t: T };
@@ -298,6 +300,48 @@ export function createBot() {
     await ctx.reply(msg);
   });
 
+  // Tyre reminders: "Swapped" and "Remind me in 3 days".
+  bot.callbackQuery(/^ty:([\w-]+):(winter|summer)$/, async (ctx) => {
+    const u = await requireLinked(ctx);
+    if (!u) return ctx.answerCallbackQuery();
+    const [, carId, season] = ctx.match;
+    const ok = await markSwapped(u.settings.userId, carId, season as "winter" | "summer", u.t(`tyres.workName.${season}`)).then(() => true).catch(() => false);
+    const text = ok ? u.t(`tyres.swappedDone.${season}`) : u.t("bot.error");
+    await ctx.answerCallbackQuery({ text });
+    await ctx.editMessageReplyMarkup().catch(() => {});
+    await ctx.reply(text);
+  });
+
+  bot.callbackQuery(/^tz:([\w-]+)$/, async (ctx) => {
+    const u = await requireLinked(ctx);
+    if (!u) return ctx.answerCallbackQuery();
+    await snoozeAdvice(u.settings.userId, ctx.match[1]).catch(() => {});
+    await ctx.answerCallbackQuery({ text: u.t("tyres.snoozed") });
+    await ctx.editMessageReplyMarkup().catch(() => {});
+  });
+
+  bot.command("tyres", async (ctx) => {
+    const u = await requireLinked(ctx);
+    if (!u) return;
+    if (u.settings.weatherLat == null) return ctx.reply(u.t("tyres.botNoLocation"));
+    const open = new Map((await evaluateUser(u.settings.userId)).map((a) => [a.carId, a]));
+    const lines = (await listCars(u.settings.userId)).map((c) => {
+      const a = open.get(c.id);
+      const season = c.tyreSeason ? u.t(`tyres.season.${c.tyreSeason}`) : u.t("tyres.season.unknown");
+      return `• <b>${escapeHtml(carLabel(c))}</b> — ${season}${a ? `\n  ${escapeHtml(tyreReason(u.t, a.reason, a.place, u.settings.locale))}` : ""}`;
+    });
+    await ctx.reply(`🛞 ${u.t("tyres.botTitle", { place: escapeHtml(u.settings.weatherPlace ?? "") })}\n\n${lines.join("\n") || u.t("bot.noCars")}`, { parse_mode: "HTML" });
+  });
+
+  // Sharing a location sets the region for weather-based reminders.
+  bot.on("message:location", async (ctx) => {
+    const u = await requireLinked(ctx);
+    if (!u) return;
+    const { latitude, longitude } = ctx.message.location;
+    await setLocation(u.settings.userId, { lat: latitude, lon: longitude, place: u.t("tyres.myLocation") });
+    await ctx.reply(u.t("tyres.locationSaved"));
+  });
+
   // "Not my car" from the check-in notification.
   bot.callbackQuery(/^nm:([\w-]+)$/, async (ctx) => {
     const u = await requireLinked(ctx);
@@ -381,6 +425,7 @@ export const BOT_COMMANDS = {
     { command: "km", description: "Update mileage: /km 84500" },
     { command: "due", description: "Upcoming maintenance" },
     { command: "visit", description: "Active shop visits" },
+    { command: "tyres", description: "Tyre swap advice for your region" },
     { command: "cars", description: "Your cars" },
     { command: "lang", description: "Language" },
     { command: "help", description: "Help" },
@@ -389,6 +434,7 @@ export const BOT_COMMANDS = {
     { command: "km", description: "Оновити пробіг: /km 84500" },
     { command: "due", description: "Найближче ТО" },
     { command: "visit", description: "Активні візити на СТО" },
+    { command: "tyres", description: "Коли міняти шини у вашому регіоні" },
     { command: "cars", description: "Ваші авто" },
     { command: "lang", description: "Мова" },
     { command: "help", description: "Допомога" },

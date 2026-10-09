@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { fuelEnum, transmissionEnum, workCategoryEnum, workTypeEnum, visitStatusEnum, aiProviderEnum } from "@/db/schema";
+import { fuelEnum, tyreSeasonEnum, transmissionEnum, workCategoryEnum, workTypeEnum, visitStatusEnum, aiProviderEnum } from "@/db/schema";
 
 const optionalText = (max = 200) =>
   z
@@ -37,6 +37,7 @@ export const carInput = z.object({
     .default("#f97316"),
   photoUrl: z.string().url().optional().nullable(),
   currentOdometer: odometer.default(0),
+  tyreSeason: z.enum(tyreSeasonEnum.enumValues).optional().nullable(),
 });
 export type CarInput = z.infer<typeof carInput>;
 

@@ -43,6 +43,13 @@
       "when": 1791526537884,
       "tag": "0005_licenses",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791531409088,
+      "tag": "0006_tyre_reminders",
+      "breakpoints": true
     }
   ]
 }

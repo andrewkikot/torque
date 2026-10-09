@@ -32,6 +32,7 @@ export type CarFormValues = {
   nickname: string;
   accentColor: string;
   photoUrl: string | null;
+  tyreSeason: "" | "summer" | "winter" | "all_season";
 };
 
 const empty: CarFormValues = {
@@ -48,6 +49,7 @@ const empty: CarFormValues = {
   nickname: "",
   accentColor: CAR_COLORS[0],
   photoUrl: null,
+  tyreSeason: "",
 };
 
 export function CarForm({ carId, initial, units }: { carId?: string; initial?: Partial<CarFormValues>; units: string }) {
@@ -79,6 +81,7 @@ export function CarForm({ carId, initial, units }: { carId?: string; initial?: P
       nickname: v.nickname || null,
       accentColor: v.accentColor,
       photoUrl: v.photoUrl,
+      tyreSeason: v.tyreSeason || null,
     };
   }
 
@@ -158,6 +161,16 @@ export function CarForm({ carId, initial, units }: { carId?: string; initial?: P
           {TRANSMISSIONS.map((x) => (
             <option key={x} value={x}>
               {t(`transmission.${x}`)}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <Field label={t("tyres.whichTyres")} optional={t("common.optional")}>
+        <Select value={v.tyreSeason} onChange={(e) => set("tyreSeason", e.target.value as CarFormValues["tyreSeason"])}>
+          <option value="">—</option>
+          {(["summer", "winter", "all_season"] as const).map((x) => (
+            <option key={x} value={x}>
+              {t(`tyres.season.${x}`)}
             </option>
           ))}
         </Select>

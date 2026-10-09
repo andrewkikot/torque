@@ -233,6 +233,76 @@ describe.skipIf(!enabled)("services (local DB)", async () => {
     expect((await lic.getEntitlements(open.id)).jobsPerMonth).toBeNull();
   });
 
+  it("tyre reminders: advice from the forecast, swap, snooze, one Telegram per season", async () => {
+    const fs = await import("node:fs");
+    const weather = await import("@/lib/services/weather");
+    const tyres = await import("@/lib/services/tyres");
+    const { runDailyReminders } = await import("@/lib/reminders");
+    // The real Kyiv forecast, shifted 15 °C colder → a clear "winter tyres" week.
+    const met = JSON.parse(fs.readFileSync("tests/fixtures/met-kyiv.json", "utf8"));
+    for (const p of met.properties.timeseries) p.data.instant.details.air_temperature -= 15;
+    let calls = 0;
+    weather.setWeatherFetcher(async () => {
+      calls++;
+      return new Response(JSON.stringify(met), { status: 200, headers: { expires: new Date(Date.now() + 3600_000).toUTCString(), "last-modified": "x" } });
+    });
+    await db.delete(schema.weatherCache).where(eq(schema.weatherCache.cell, "50.5,30.5"));
+    try {
+      const car = await cars.createCar(A, { make: "Kia", model: "Ceed", currentOdometer: 30000, fuel: "petrol" }, { withPresets: false });
+      await expect(tyres.setTyreSeason(B, car.id, "summer")).rejects.toThrow(); // not the owner
+      await tyres.setTyreSeason(A, car.id, "summer");
+      expect(await tyres.evaluateUser(A)).toEqual([]); // no location yet
+      await tyres.setLocation(A, { lat: 50.4501, lon: 30.5234, place: "Kyiv" });
+      const open = await tyres.evaluateUser(A);
+      expect(open.find((x) => x.carId === car.id)).toMatchObject({ target: "winter", place: "Kyiv" });
+      expect(["now", "urgent"]).toContain(open.find((x) => x.carId === car.id)!.level);
+      // Neighbours share the cached forecast.
+      await tyres.evaluateUser(A);
+      expect(calls).toBe(1);
+
+      // Snooze hides it; all-season gets nothing.
+      await tyres.snoozeAdvice(A, car.id);
+      expect((await tyres.adviceForCars(A, [car.id])).size).toBe(0);
+      expect((await tyres.evaluateUser(A)).find((x) => x.carId === car.id)).toBeUndefined();
+
+      // Cron: one Telegram message per car per season
+      await db.update(schema.tyreAdvice).set({ snoozedUntil: null }).where(eq(schema.tyreAdvice.carId, car.id));
+      await db.update(schema.userSettings).set({ telegramChatId: `chat-${A}` }).where(eq(schema.userSettings.userId, A));
+      process.env.TELEGRAM_BOT_TOKEN = "123:fake";
+      const sent: string[] = [];
+      const orig = globalThis.fetch;
+      globalThis.fetch = (async (url: string | URL, init?: RequestInit) => {
+        if (String(url).includes("api.telegram.org")) {
+          const b = JSON.parse(String(init!.body));
+          if (b.chat_id === `chat-${A}`) sent.push(b.text);
+          return new Response("{}");
+        }
+        return orig(url, init);
+      }) as typeof fetch;
+      try {
+        await runDailyReminders();
+        await runDailyReminders();
+      } finally {
+        globalThis.fetch = orig;
+        delete process.env.TELEGRAM_BOT_TOKEN;
+      }
+      const tyreMsgs = sent.filter((m) => /winter tyres/i.test(m));
+      expect(tyreMsgs.length).toBe(1);
+
+      // Swapped: season updated, advice cleared, logged in the service book
+      await tyres.markSwapped(A, car.id, "winter", "Tyre swap → winter");
+      expect((await cars.getCar(A, car.id)).tyreSeason).toBe("winter");
+      expect((await tyres.adviceForCars(A, [car.id])).size).toBe(0);
+      expect((await work.listHistory(A, car.id)).map((h) => h.name)).toContain("Tyre swap → winter");
+      await expect(tyres.markSwapped(B, car.id, "summer", "x")).rejects.toThrow();
+      // Cold week on winter tyres → no summer advice
+      expect((await tyres.evaluateUser(A)).find((x) => x.carId === car.id)).toBeUndefined();
+    } finally {
+      weather.setWeatherFetcher(null);
+      await db.update(schema.userSettings).set({ telegramChatId: null, weatherLat: null, weatherLon: null }).where(eq(schema.userSettings.userId, A));
+    }
+  });
+
   it("stores AI keys encrypted and never exposes them publicly", async () => {
     process.env.ENCRYPTION_KEY ??= Buffer.alloc(32, 1).toString("base64");
     await ai.saveAiSettings(A, { provider: "google", model: "gemini-3.8-flash", apiKey: "AIzaSECRETKEY123456" });

@@ -116,6 +116,11 @@ export const userSettings = pgTable("user_settings", {
   notifyVisitUpdates: boolean("notify_visit_updates").notNull().default(true),
   notifyMaintenance: boolean("notify_maintenance").notNull().default(true),
   notifyMileageNudge: boolean("notify_mileage_nudge").notNull().default(true),
+  // Location for weather-based tyre reminders (rounded to ~1 km for privacy).
+  weatherLat: real("weather_lat"),
+  weatherLon: real("weather_lon"),
+  weatherPlace: text("weather_place"),
+  notifyTyres: boolean("notify_tyres").notNull().default(true),
   // Car the bot uses by default when the user has several.
   defaultCarId: text("default_car_id"),
   // Terms of Use: which version the user accepted, and when.
@@ -155,6 +160,8 @@ export const aiSettings = pgTable("ai_settings", {
 export const fuelEnum = pgEnum("fuel", ["petrol", "diesel", "hybrid", "electric", "lpg", "other"]);
 export const transmissionEnum = pgEnum("transmission", ["manual", "automatic", "cvt", "dct", "other"]);
 
+export const tyreSeasonEnum = pgEnum("tyre_season", ["summer", "winter", "all_season"]);
+
 export const cars = pgTable(
   "cars",
   {
@@ -177,6 +184,9 @@ export const cars = pgTable(
     currentOdometer: integer("current_odometer").notNull().default(0),
     // One-time code a workshop scans/types to attach a job to this car. Rotates after each use.
     checkinCode: text("checkin_code").unique(),
+    // Which tyres are on the car now; drives seasonal swap reminders. Null = unknown.
+    tyreSeason: tyreSeasonEnum("tyre_season"),
+    tyreSeasonSetAt: timestamp("tyre_season_set_at", { withTimezone: true }),
     archived: boolean("archived").notNull().default(false),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -490,6 +500,32 @@ export const usageCounters = pgTable(
     windowStart: timestamp("window_start", { withTimezone: true }).notNull().defaultNow(),
   },
 );
+
+/** One MET Norway forecast per ~11 km grid cell, shared by everyone nearby. */
+export const weatherCache = pgTable("weather_cache", {
+  cell: text("cell").primaryKey(),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  lastModified: text("last_modified"),
+  days: jsonb("days").$type<{ date: string; mean: number; min: number; max: number; snow: boolean }[]>().notNull(),
+});
+
+export const tyreAdviceTargetEnum = pgEnum("tyre_target", ["winter", "summer"]);
+export const tyreAdviceLevelEnum = pgEnum("tyre_level", ["soon", "now", "urgent"]);
+
+/** Latest open tyre-swap advice per car. */
+export const tyreAdvice = pgTable("tyre_advice", {
+  carId: text("car_id")
+    .primaryKey()
+    .references(() => cars.id, { onDelete: "cascade" }),
+  target: tyreAdviceTargetEnum("target").notNull(),
+  level: tyreAdviceLevelEnum("level").notNull(),
+  reason: jsonb("reason").$type<Record<string, unknown>>().notNull(),
+  place: text("place"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+  snoozedUntil: timestamp("snoozed_until", { withTimezone: true }),
+});
 
 export const remindersLog = pgTable(
   "reminders_log",

@@ -2,7 +2,7 @@ import { useLocale, useTimeZone, useTranslations } from "next-intl";
 import { BadgeCheck, Sparkles, Check } from "lucide-react";
 import { Card, Badge } from "@/components/ui/card";
 import { formatDate } from "@/lib/format";
-import { FREE, PRO_DEFAULT_SEATS, type Entitlements } from "@/lib/plans";
+import { FREE, PRO_DEFAULT_SEATS, daysUntil, type Entitlements } from "@/lib/plans";
 import { cn } from "@/lib/utils";
 import { ActivateKeyForm } from "./activate-key";
 
@@ -41,7 +41,7 @@ export function PlanCard({
   const locale = useLocale();
   const tz = useTimeZone();
   const pro = e.plan === "pro";
-  const daysLeft = e.expiresAt ? Math.max(0, Math.ceil((new Date(e.expiresAt).getTime() - Date.now()) / 86_400_000)) : null;
+  const daysLeft = e.expiresAt ? daysUntil(e.expiresAt) : null;
   const contactUrl = salesContact?.startsWith("@") ? `https://t.me/${salesContact.slice(1)}` : null;
 
   return (

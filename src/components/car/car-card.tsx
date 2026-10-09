@@ -16,12 +16,15 @@ export function CarCard({
   next,
   activeVisit,
   units,
+  tyre,
 }: {
   car: Car;
   health: number | null;
   next?: PlanWithDue;
   activeVisit?: Pick<ServiceVisit, "status" | "title">;
   units: string;
+  /** Open tyre-swap advice ("winter" / "summer") */
+  tyre?: "winter" | "summer";
 }) {
   const t = useTranslations();
   const locale = useLocale();
@@ -45,6 +48,11 @@ export function CarCard({
               <span className="relative inline-flex size-2 rounded-full bg-accent" />
             </span>
             {STATUS_EMOJI[activeVisit.status]} {t(`status.${activeVisit.status}`)}
+          </span>
+        )}
+        {tyre && (
+          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-xs font-bold text-stone-900 shadow backdrop-blur">
+            {tyre === "winter" ? "❄️" : "☀️"} {t(tyre === "winter" ? "tyres.pillWinter" : "tyres.pillSummer")}
           </span>
         )}
         <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between text-white">

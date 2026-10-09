@@ -72,3 +72,8 @@ export function normalizeLicenseKey(input: string): string | null {
   if ([...c].some((ch) => !KEY_ALPHABET.includes(ch))) return null;
   return `TQ-PRO-${c.slice(0, 4)}-${c.slice(4, 8)}-${c.slice(8, 12)}`;
 }
+
+/** Whole days until a date (0 if past). Kept out of components so renders stay pure. */
+export function daysUntil(date: Date | string, now: number = Date.now()) {
+  return Math.max(0, Math.ceil((new Date(date).getTime() - now) / 86_400_000));
+}

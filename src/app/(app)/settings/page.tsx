@@ -8,6 +8,7 @@ import { AiCard } from "@/components/settings/ai";
 import { isTelegramEmail } from "@/lib/services/telegram-login";
 import { myWorkshops } from "@/lib/services/workshops";
 import { WorkshopEntryCard } from "@/components/settings/workshop-card";
+import { WeatherCard } from "@/components/settings/weather-card";
 
 export const metadata = { title: "Settings" };
 
@@ -26,6 +27,7 @@ export default async function SettingsPage() {
           username={settings.telegramUsername}
           bot={process.env.TELEGRAM_BOT_USERNAME ?? null}
         />
+        <WeatherCard place={settings.weatherPlace} notifyTyres={settings.notifyTyres} />
         <WorkshopEntryCard workshops={workshops.map((w) => ({ id: w.workshop.id, name: w.workshop.name }))} />
         <PreferencesCard
           name={user.name}

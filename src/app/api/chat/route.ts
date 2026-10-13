@@ -33,7 +33,8 @@ export async function POST(req: Request) {
   if (!ai) return Response.json({ error: "not_configured" }, { status: 412 });
 
   const body = (await req.json()) as { messages: unknown; carId?: string | null };
-  const tools = buildTools(user.id);
+  const settings = await getSettings(user.id);
+  const tools = buildTools(user.id, "ai", { units: settings.units });
   let messages: UIMessage[];
   try {
     messages = await validateUIMessages({ messages: body.messages, tools: tools as never });
@@ -42,13 +43,12 @@ export async function POST(req: Request) {
   }
   messages = messages.slice(-30);
 
-  const settings = await getSettings(user.id);
   const system = await buildSystemPrompt(user.id, {
     locale: settings.locale,
     units: settings.units,
     currency: settings.currency,
     channel: "web",
-    focusCarId: body.carId,
+    requestedCarId: body.carId,
   });
 
   const result = streamText({

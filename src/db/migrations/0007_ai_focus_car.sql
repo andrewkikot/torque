@@ -1,0 +1,2 @@
+ALTER TABLE "ai_messages" ADD COLUMN "focus_car_id" text;--> statement-breakpoint
+ALTER TABLE "ai_messages" ADD CONSTRAINT "ai_messages_focus_car_id_cars_id_fk" FOREIGN KEY ("focus_car_id") REFERENCES "public"."cars"("id") ON DELETE set null ON UPDATE no action;

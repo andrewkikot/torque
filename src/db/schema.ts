@@ -487,6 +487,8 @@ export const aiMessages = pgTable(
     role: text("role").notNull(),
     // AI SDK UIMessage parts
     parts: jsonb("parts").$type<unknown[]>().notNull(),
+    // The car this conversation is about; its full record is loaded into every turn.
+    focusCarId: text("focus_car_id").references(() => cars.id, { onDelete: "set null" }),
     createdAt: createdAt(),
   },
   (t) => [index("ai_msg_user_idx").on(t.userId, t.channel, t.createdAt)],

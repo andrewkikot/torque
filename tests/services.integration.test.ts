@@ -303,6 +303,42 @@ describe.skipIf(!enabled)("services (local DB)", async () => {
     }
   });
 
+  it("keeps the assistant on one car and loads its full record", async () => {
+    const { buildSystemPrompt } = await import("@/lib/ai/prompt");
+    const { buildTools } = await import("@/lib/ai/tools");
+    const history = await import("@/lib/ai/history");
+    const opts = { locale: "en" as const, units: "km", currency: "UAH", channel: "web" as const };
+    const golf = await cars.createCar(A, { make: "VW", model: "Golf", nickname: "Gogo", currentOdometer: 90000, fuel: "petrol", vin: "WVWZZZ1KZ6W000001" });
+    const bmw = await cars.createCar(A, { make: "BMW", model: "320d", currentOdometer: 150000, fuel: "diesel" });
+    await work.addWork(A, { carId: golf.id, name: "Timing belt kit", category: "engine", cost: 9500, odometer: 90000, partNumber: "CT1028K2" });
+    try {
+      // Opened from the Golf's page: the Golf's whole record is in the prompt, the BMW's isn't.
+      const p1 = await buildSystemPrompt(A, { ...opts, requestedCarId: golf.id });
+      expect(p1).toContain("WVWZZZ1KZ6W000001");
+      expect(p1).toContain("Timing belt kit");
+      expect(p1).toContain("CT1028K2");
+      // Next turn sends no car: the conversation stays on the Golf.
+      expect(await buildSystemPrompt(A, opts)).toContain("Timing belt kit");
+      // Talking about the BMW through any tool switches the conversation to it.
+      const tools = buildTools(A, "ai", { units: "km" });
+      const call = { toolCallId: "t", messages: [] } as never;
+      await tools.getCarDetails.execute!({ carId: bmw.id }, call);
+      expect(await history.getFocusCar(A, "web")).toBe(bmw.id);
+      expect(await buildSystemPrompt(A, opts)).not.toContain("Timing belt kit");
+      await tools.getCarHistory.execute!({ carId: golf.id, limit: 5 }, call);
+      expect(await history.getFocusCar(A, "web")).toBe(golf.id);
+      // Another user's car can't be read or focused, by id or from the URL.
+      const bTools = buildTools(B, "ai", { units: "km" });
+      expect(await bTools.getCarDetails.execute!({ carId: golf.id }, call)).toEqual({ error: "Car not found" });
+      expect(await history.getFocusCar(B, "web")).toBeNull();
+      expect(await buildSystemPrompt(B, { ...opts, requestedCarId: golf.id })).not.toContain("Timing belt kit");
+      expect(await history.getFocusCar(B, "web")).toBeNull();
+    } finally {
+      await history.clearConversation(A, "web");
+      await history.clearConversation(B, "web");
+    }
+  });
+
   it("stores AI keys encrypted and never exposes them publicly", async () => {
     process.env.ENCRYPTION_KEY ??= Buffer.alloc(32, 1).toString("base64");
     await ai.saveAiSettings(A, { provider: "google", model: "gemini-3.8-flash", apiKey: "AIzaSECRETKEY123456" });

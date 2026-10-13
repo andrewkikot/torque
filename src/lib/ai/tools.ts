@@ -7,11 +7,13 @@ import { listHistory } from "@/lib/services/work";
 import { addWork } from "@/lib/services/work";
 import { getUpcoming, addPlan } from "@/lib/services/maintenance";
 import { listVisits, visitTotal, vehicleLabel } from "@/lib/services/visits";
-import { AppError } from "@/lib/errors";
+import { AppError, notFound } from "@/lib/errors";
 import { db, schema } from "@/db";
 import { eq } from "drizzle-orm";
 import { evaluateUser } from "@/lib/services/tyres";
 import { getForecast } from "@/lib/services/weather";
+import { setFocusCar } from "./history";
+import { buildCarDossier } from "./car-context";
 
 const carId = z.string().describe("Car id from listCars or the garage context");
 
@@ -26,7 +28,16 @@ async function safe<T>(fn: () => Promise<T>): Promise<T | { error: string }> {
 }
 
 /** All tools are bound to the signed-in user; the model can never reach other users' data. */
-export function buildTools(userId: string, source: "ai" | "telegram" = "ai") {
+export function buildTools(userId: string, source: "ai" | "telegram" = "ai", opts: { units?: string } = {}) {
+  const channel = source === "telegram" ? "telegram" : "web";
+  /** Run a tool on one car; on success that car becomes the conversation's current car. */
+  const onCar = <T,>(carId: string, fn: () => Promise<T>) =>
+    safe(async () => {
+      const result = await fn();
+      await setFocusCar(userId, channel, carId);
+      return result;
+    });
+
   return {
     listCars: tool({
       description: "List the user's cars with id, name, odometer and fuel type.",
@@ -44,11 +55,19 @@ export function buildTools(userId: string, source: "ai" | "telegram" = "ai") {
         })),
     }),
 
+    getCarDetails: tool({
+      description:
+        "Switch the conversation to a car and get everything saved about it (profile, maintenance plan, service book, visits, spending). Call when the user starts talking about a car other than the current one.",
+      inputSchema: z.object({ carId }),
+      execute: ({ carId }) =>
+        onCar(carId, async () => (await buildCarDossier(userId, carId, { units: opts.units ?? "km" })) ?? notFound("Car")),
+    }),
+
     getCarHistory: tool({
       description: "Get recent service/work history for a car (newest first).",
       inputSchema: z.object({ carId, limit: z.number().int().min(1).max(50).default(20) }),
       execute: ({ carId, limit }) =>
-        safe(async () =>
+        onCar(carId, async () =>
           (await listHistory(userId, carId)).slice(0, limit).map((w) => ({
             date: w.performedAt.toISOString().slice(0, 10),
             name: w.name,
@@ -67,7 +86,7 @@ export function buildTools(userId: string, source: "ai" | "telegram" = "ai") {
       description: "Get maintenance items with predicted due dates/mileage for a car, most urgent first.",
       inputSchema: z.object({ carId }),
       execute: ({ carId }) =>
-        safe(async () => {
+        onCar(carId, async () => {
           const { car, plans, dailyDistance, health } = await getUpcoming(userId, carId);
           return {
             car: carLabel(car),
@@ -128,7 +147,7 @@ export function buildTools(userId: string, source: "ai" | "telegram" = "ai") {
       description: "Record the current odometer (mileage) reading for a car. Requires user approval.",
       inputSchema: z.object({ carId, value: z.number().int().min(0).describe("Odometer reading in the user's units") }),
       execute: ({ carId, value }) =>
-        safe(async () => {
+        onCar(carId, async () => {
           const r = await logOdometer(userId, carId, value, source === "telegram" ? "telegram" : "ai");
           return { ok: true, car: carLabel(r.car), previous: r.previous, current: r.current };
         }),
@@ -150,7 +169,7 @@ export function buildTools(userId: string, source: "ai" | "telegram" = "ai") {
         diy: z.boolean().default(false),
       }),
       execute: ({ date, ...input }) =>
-        safe(async () => {
+        onCar(input.carId, async () => {
           const item = await addWork(userId, { ...input, performedAt: date ? new Date(date) : undefined }, { source: source === "telegram" ? "telegram" : "ai" });
           return { ok: true, id: item.id, name: item.name };
         }),
@@ -166,7 +185,7 @@ export function buildTools(userId: string, source: "ai" | "telegram" = "ai") {
         intervalMonths: z.number().int().min(1).optional(),
       }),
       execute: (input) =>
-        safe(async () => {
+        onCar(input.carId, async () => {
           await getCar(userId, input.carId);
           const p = await addPlan(userId, input);
           return { ok: true, id: p.id };

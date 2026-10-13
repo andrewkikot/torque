@@ -29,9 +29,11 @@ export function Chat({ initialMessages, carId, carName }: { initialMessages: UIM
   const router = useRouter();
   const [input, setInput] = useState("");
   const bottom = useRef<HTMLDivElement>(null);
+  // Send the page's car only once: after that the server tracks which car the conversation is about.
+  const carSent = useRef(false);
   const { messages, sendMessage, status, stop, error, setMessages, addToolApprovalResponse } = useChat({
     messages: initialMessages,
-    transport: new DefaultChatTransport({ api: "/api/chat", body: { carId } }),
+    transport: new DefaultChatTransport({ api: "/api/chat" }),
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
     onFinish: () => router.refresh(),
   });
@@ -43,7 +45,8 @@ export function Chat({ initialMessages, carId, carName }: { initialMessages: UIM
 
   const send = (text: string) => {
     if (!text.trim() || busy) return;
-    sendMessage({ text });
+    sendMessage({ text }, carSent.current ? undefined : { body: { carId } });
+    carSent.current = true;
     setInput("");
   };
 
@@ -61,6 +64,7 @@ export function Chat({ initialMessages, carId, carName }: { initialMessages: UIM
               stop();
               setMessages([]);
               await clearChatAction();
+              carSent.current = false;
             }}
           >
             <RotateCcw /> {t("clear")}

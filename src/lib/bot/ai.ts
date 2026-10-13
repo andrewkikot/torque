@@ -21,13 +21,14 @@ async function run(userId: string, settings: UserSettings, messages: ModelMessag
     units: settings.units,
     currency: settings.currency,
     channel: "telegram",
+    defaultCarId: settings.defaultCarId,
   });
   try {
     const result = await generateText({
       model: ai.model,
       system,
       messages,
-      tools: buildTools(userId, "telegram"),
+      tools: buildTools(userId, "telegram", { units: settings.units }),
       toolApproval: approvalConfig,
       stopWhen: isStepCount(6),
       temperature: ai.temperature,

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(npx vercel whoami)",
+      "Bash(npx vercel link)",
+      "Bash(npx vercel link *)",
+      "Bash(npx vercel env ls)",
+      "Bash(npx vercel env ls *)",
+      "Bash(npx vercel env pull)",
+      "Bash(npx vercel env pull *)",
+      "Bash(npx vercel project ls)",
+      "Bash(npx vercel project ls *)"
+    ],
+    "ask": [
+      "Bash(npx vercel)",
+      "Bash(npx vercel env add *)",
+      "Bash(npx vercel env rm *)",
+      "Bash(npx vercel deploy *)",
+      "Bash(npx vercel remove *)",
+      "Bash(npx vercel rollback *)"
+    ]
+  }
+}

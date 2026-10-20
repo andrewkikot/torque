@@ -283,6 +283,8 @@
     "receipt": "Receipt photo",
     "plan": "Resets reminder",
     "planAuto": "Auto (by category)",
+    "editTitle": "Edit entry",
+    "updated": "Entry updated",
     "added": "Added to the service book",
     "deleted": "Entry deleted"
   },

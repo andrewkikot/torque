@@ -24,6 +24,14 @@ export async function addWorkAction(input: { carId: string } & Record<string, un
   });
 }
 
+export async function updateWorkAction(carId: string, workId: string, input: Record<string, unknown>) {
+  const user = await requireUser();
+  return run(async () => {
+    await work.updateWork(user.id, workId, input);
+    refresh(carId);
+  });
+}
+
 export async function deleteWorkAction(carId: string, workId: string) {
   const user = await requireUser();
   return run(async () => {

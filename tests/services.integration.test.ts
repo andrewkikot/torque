@@ -52,6 +52,50 @@ describe.skipIf(!enabled)("services (local DB)", async () => {
     await expect(cars.logOdometer(A, car.id, 90000, "telegram")).rejects.toThrow(/lower/);
   });
 
+  it("edits an entry and re-derives the reminder it resets", async () => {
+    const car = await cars.createCar(
+      A,
+      { make: "Ford", model: "Focus", currentOdometer: 60000, fuel: "petrol" },
+      { presetNames: { oilChange: "Oil", inspection: "Inspection" } },
+    );
+    const plans = (await maintenance.getUpcoming(A, car.id)).plans;
+    const oil = plans.find((p) => p.category === "oil")!;
+    const inspection = plans.find((p) => p.category === "inspection")!;
+    const item = await work.addWork(A, { carId: car.id, name: "Oil chnage", category: "oil", cost: 1500, odometer: 60000 });
+    const planOf = async (id: string) => (await db.query.maintenancePlans.findFirst({ where: eq(schema.maintenancePlans.id, id) }))!;
+
+    const fixed = await work.updateWork(A, item.id, { name: "Oil change", cost: 1700 });
+    expect(fixed.name).toBe("Oil change");
+    expect(Number(fixed.cost)).toBe(1700);
+    await expect(work.updateWork(B, item.id, { name: "pwned" })).rejects.toThrow(/not found/i);
+
+    // Correcting the mileage moves the reminder's baseline — including downwards, which adding never does.
+    await work.updateWork(A, item.id, { odometer: 68000 });
+    expect((await planOf(oil.id)).lastDoneOdometer).toBe(68000);
+    await work.updateWork(A, item.id, { odometer: 61000 });
+    expect((await planOf(oil.id)).lastDoneOdometer).toBe(61000);
+
+    // Re-pointing the entry at another reminder takes the baseline along.
+    await work.updateWork(A, item.id, { maintenancePlanId: inspection.id });
+    expect((await db.query.workItems.findFirst({ where: eq(schema.workItems.id, item.id) }))!.maintenancePlanId).toBe(inspection.id);
+    expect((await planOf(inspection.id)).lastDoneOdometer).toBe(61000);
+  });
+
+  it("won't let the owner rewrite a workshop's record", async () => {
+    const car = await cars.createCar(A, { make: "Honda", model: "Civic", currentOdometer: 30000, fuel: "petrol" }, { withPresets: false });
+    const shop = await workshops.createWorkshop(B, { name: "EditGuard" });
+    const code = await cars.getCheckinCode(A, car.id);
+    const v = await visits.checkInByCode(B, shop.id, code, { title: "Service" });
+    await visits.addVisitWork({ kind: "staff", userId: B }, v.id, { name: "Pads", category: "brakes", cost: 2000 });
+    await visits.changeStatus({ kind: "staff", userId: B }, v.id, "completed");
+
+    const logged = (await work.listHistory(A, car.id)).find((w) => w.name === "Pads")!;
+    await expect(work.updateWork(A, logged.id, { cost: 10 })).rejects.toThrow(/workshop/i);
+    // Hiding it is still the owner's call; forging it is not.
+    await work.deleteWork(A, logged.id);
+    expect((await work.listHistory(A, car.id)).length).toBe(0);
+  });
+
   it("workshop runs a code check-in; owner follows, approves, gets the service book", async () => {
     const car = await cars.createCar(A, { make: "Toyota", model: "Corolla", currentOdometer: 50000, fuel: "hybrid" }, { withPresets: false });
     // B runs a workshop; A is just a car owner.

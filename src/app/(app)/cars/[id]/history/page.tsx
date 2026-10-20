@@ -39,7 +39,7 @@ export default async function HistoryPage({ params, searchParams }: PageProps<"/
           <AddWorkButton carId={car.id} currency={settings.currency} units={settings.units} odometer={car.currentOdometer} plans={plans} />
         </div>
         {items.length ? (
-          <HistoryList items={items} units={settings.units} carId={car.id} />
+          <HistoryList items={items} units={settings.units} carId={car.id} plans={plans} />
         ) : (
           <EmptyState icon="📒" title={t("history.empty")} sub={t("history.emptySub")} />
         )}

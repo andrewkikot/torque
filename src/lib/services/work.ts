@@ -1,10 +1,10 @@
 import "server-only";
 import { and, desc, eq, gte, lt, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
-import { notFound } from "@/lib/errors";
+import { AppError, notFound } from "@/lib/errors";
 import { workInput } from "@/lib/validation";
 import { bumpOdometer, getCar } from "./cars";
-import { resetPlanFromWork } from "./maintenance";
+import { planIdForWork, recomputePlan, resetPlanFromWork } from "./maintenance";
 import type { WorkCategory } from "@/db/schema";
 
 const { workItems, serviceVisits } = schema;
@@ -43,11 +43,52 @@ export async function addWork(userId: string, raw: unknown, opts: { source?: "we
   return item;
 }
 
+/**
+ * Edit an entry the owner wrote. Work logged against a shop visit stays read-only here:
+ * the public car page marks those as workshop-verified, so the owner must not be able to
+ * rewrite them. Removing such an entry is still allowed — that only hides, never forges.
+ */
+export async function updateWork(userId: string, workId: string, raw: unknown) {
+  const item = await db.query.workItems.findFirst({ where: eq(workItems.id, workId) });
+  if (!item || !item.carId) notFound("Work item");
+  const car = await getCar(userId, item.carId);
+  if (item.visitId) throw new AppError("forbidden", "Work recorded by a workshop can't be edited");
+
+  const data = workInput.partial().parse(raw);
+  // An entry never moves to another car or visit; only its contents change.
+  delete data.carId;
+  delete data.visitId;
+  // Numerics are stored as strings; pulling them out of the spread keeps the patch's type clean.
+  const { quantity, cost, ...rest } = data;
+  const patch = {
+    ...rest,
+    ...(quantity != null && { quantity: String(quantity) }),
+    ...(cost != null && { cost: String(cost) }),
+  };
+  if (!Object.values(patch).some((v) => v !== undefined)) return item;
+
+  const [updated] = await db.update(workItems).set(patch).where(eq(workItems.id, workId)).returning();
+
+  // A new category or reminder can move the entry to a different plan, and both the plan it
+  // left and the one it joined have to be re-derived from what is actually logged.
+  const nextPlanId = await planIdForWork(car.id, updated);
+  if (nextPlanId !== updated.maintenancePlanId) {
+    await db.update(workItems).set({ maintenancePlanId: nextPlanId }).where(eq(workItems.id, workId));
+  }
+  for (const planId of new Set([item.maintenancePlanId, nextPlanId].filter((v): v is string => !!v))) {
+    await recomputePlan(planId);
+  }
+  await bumpOdometer(car.id, updated.odometer, "web");
+  return updated;
+}
+
 export async function deleteWork(userId: string, workId: string) {
   const item = await db.query.workItems.findFirst({ where: eq(workItems.id, workId) });
   if (!item || !item.carId) notFound("Work item");
   await getCar(userId, item.carId);
   await db.delete(workItems).where(eq(workItems.id, workId));
+  // The reminder it reset falls back to the previous entry.
+  if (item.maintenancePlanId) await recomputePlan(item.maintenancePlanId);
 }
 
 export type HistoryFilter = { category?: WorkCategory; year?: number };

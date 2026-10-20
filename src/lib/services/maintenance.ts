@@ -71,6 +71,47 @@ export async function deletePlan(userId: string, planId: string) {
   await db.delete(maintenancePlans).where(eq(maintenancePlans.id, planId));
 }
 
+type WorkLink = { maintenancePlanId?: string | null; category: WorkCategory };
+
+/** The plan a work item counts towards: an explicit link, else the only active plan in its category. */
+async function matchPlan(carId: string, work: WorkLink): Promise<MaintenancePlan | undefined> {
+  if (work.maintenancePlanId) {
+    return db.query.maintenancePlans.findFirst({
+      where: and(eq(maintenancePlans.id, work.maintenancePlanId), eq(maintenancePlans.carId, carId)),
+    });
+  }
+  const candidates = await db.query.maintenancePlans.findMany({
+    where: and(
+      eq(maintenancePlans.carId, carId),
+      eq(maintenancePlans.category, work.category),
+      eq(maintenancePlans.active, true),
+    ),
+  });
+  return candidates.length === 1 ? candidates[0] : undefined;
+}
+
+export async function planIdForWork(carId: string, work: WorkLink) {
+  return (await matchPlan(carId, work))?.id ?? null;
+}
+
+/**
+ * Re-derive a plan's counters from the newest entry still linked to it. Unlike
+ * resetPlanFromWork this can move them *backwards*, which is what editing or deleting
+ * an entry needs. A plan with nothing left linked keeps the counters it has rather than
+ * reverting to "never done" — we have no record to put there instead.
+ */
+export async function recomputePlan(planId: string) {
+  const newest = await db.query.workItems.findFirst({
+    where: and(eq(schema.workItems.maintenancePlanId, planId), eq(schema.workItems.approved, true)),
+    orderBy: [desc(schema.workItems.performedAt)],
+  });
+  if (!newest) return;
+  await db
+    .update(maintenancePlans)
+    .set({ lastDoneAt: newest.performedAt, ...(newest.odometer != null ? { lastDoneOdometer: newest.odometer } : {}) })
+    .where(eq(maintenancePlans.id, planId));
+}
+
 /**
  * When work is recorded, reset the matching plan's counters.
  * Matches by explicit plan id, or by category when exactly one active plan has it.
@@ -79,21 +120,7 @@ export async function resetPlanFromWork(
   carId: string,
   work: { maintenancePlanId?: string | null; category: WorkCategory; performedAt: Date; odometer: number | null },
 ) {
-  let plan: MaintenancePlan | undefined;
-  if (work.maintenancePlanId) {
-    plan = await db.query.maintenancePlans.findFirst({
-      where: and(eq(maintenancePlans.id, work.maintenancePlanId), eq(maintenancePlans.carId, carId)),
-    });
-  } else {
-    const candidates = await db.query.maintenancePlans.findMany({
-      where: and(
-        eq(maintenancePlans.carId, carId),
-        eq(maintenancePlans.category, work.category),
-        eq(maintenancePlans.active, true),
-      ),
-    });
-    if (candidates.length === 1) plan = candidates[0];
-  }
+  const plan = await matchPlan(carId, work);
   if (!plan) return null;
   // Don't move counters backwards when logging old history.
   if (plan.lastDoneAt && plan.lastDoneAt > work.performedAt) return plan.id;

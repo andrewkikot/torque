@@ -36,6 +36,8 @@ export function WorkForm({
   compact,
   shareToken,
   submitLabel,
+  initial,
+  successLabel,
 }: {
   onSubmit: (p: WorkPayload) => Promise<Result>;
   onDone?: () => void;
@@ -48,20 +50,23 @@ export function WorkForm({
   compact?: boolean;
   shareToken?: string;
   submitLabel?: string;
+  /** Pre-fills the form when editing an existing entry. `performedAt` is YYYY-MM-DD. */
+  initial?: Partial<WorkPayload>;
+  successLabel?: string;
 }) {
   const t = useTranslations();
-  const [name, setName] = useState("");
-  const [category, setCategory] = useState("other");
-  const [type, setType] = useState<WorkPayload["type"]>("labor");
-  const [cost, setCost] = useState("");
-  const [qty, setQty] = useState("1");
-  const [odometer, setOdometer] = useState(defaultOdometer ? String(defaultOdometer) : "");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [partNumber, setPartNumber] = useState("");
-  const [notes, setNotes] = useState("");
-  const [diy, setDiy] = useState(false);
-  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
-  const [planId, setPlanId] = useState("");
+  const [name, setName] = useState(initial?.name ?? "");
+  const [category, setCategory] = useState(initial?.category ?? "other");
+  const [type, setType] = useState<WorkPayload["type"]>(initial?.type ?? "labor");
+  const [cost, setCost] = useState(initial?.cost != null ? String(initial.cost) : "");
+  const [qty, setQty] = useState(initial?.quantity != null ? String(initial.quantity) : "1");
+  const [odometer, setOdometer] = useState(String(initial?.odometer ?? defaultOdometer ?? ""));
+  const [date, setDate] = useState(initial?.performedAt ?? new Date().toISOString().slice(0, 10));
+  const [partNumber, setPartNumber] = useState(initial?.partNumber ?? "");
+  const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [diy, setDiy] = useState(initial?.diy ?? false);
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(initial?.receiptUrl ?? null);
+  const [planId, setPlanId] = useState(initial?.maintenancePlanId ?? "");
   const [busy, setBusy] = useState(false);
 
   async function submit(e: React.FormEvent) {
@@ -83,7 +88,7 @@ export function WorkForm({
     });
     setBusy(false);
     if (!r.ok) return toast.error(r.error);
-    toast.success(t("work.added"));
+    toast.success(successLabel ?? t("work.added"));
     onDone?.();
   }
 

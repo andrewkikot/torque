@@ -5,6 +5,7 @@ import { formatDate, formatMoney, formatNumber } from "@/lib/format";
 import { Badge } from "@/components/ui/card";
 import { CATEGORY_EMOJI } from "./categories";
 import { DeleteWorkButton } from "./delete-work-button";
+import { EditWorkButton } from "./edit-work-button";
 
 type Item = {
   id: string;
@@ -20,11 +21,25 @@ type Item = {
   partNumber: string | null;
   receiptUrl: string | null;
   diy: boolean;
+  maintenancePlanId: string | null;
   visit: { id: string; title: string; shopName: string | null } | null;
 };
 
 /** Service-book timeline, grouped by month. */
-export function HistoryList({ items, units, carId, readOnly }: { items: Item[]; units: string; carId: string; readOnly?: boolean }) {
+export function HistoryList({
+  items,
+  units,
+  carId,
+  readOnly,
+  plans,
+}: {
+  items: Item[];
+  units: string;
+  carId: string;
+  readOnly?: boolean;
+  /** Reminder choices offered when editing an entry. */
+  plans?: { id: string; name: string }[];
+}) {
   const t = useTranslations();
   const locale = useLocale();
   const tz = useTimeZone();
@@ -80,6 +95,30 @@ export function HistoryList({ items, units, carId, readOnly }: { items: Item[]; 
                           <a href={i.receiptUrl} target="_blank" rel="noreferrer" className="grid size-8 place-items-center rounded-xl text-muted hover:bg-soft" aria-label={t("work.receipt")}>
                             <Receipt className="size-4" />
                           </a>
+                        )}
+                        {!readOnly && !i.visit && (
+                          <EditWorkButton
+                            carId={carId}
+                            units={units}
+                            plans={plans}
+                            item={{
+                              id: i.id,
+                              currency: i.currency,
+                              name: i.name,
+                              category: i.category,
+                              type: i.type as "labor" | "part" | "fluid",
+                              cost: Number(i.cost),
+                              quantity: Number(i.quantity),
+                              odometer: i.odometer,
+                              // The form's date input works in plain YYYY-MM-DD, like "add" does.
+                              performedAt: i.performedAt.toISOString().slice(0, 10),
+                              partNumber: i.partNumber,
+                              notes: i.notes,
+                              diy: i.diy,
+                              receiptUrl: i.receiptUrl,
+                              maintenancePlanId: i.maintenancePlanId,
+                            }}
+                          />
                         )}
                         {!readOnly && <DeleteWorkButton carId={carId} workId={i.id} />}
                       </div>
